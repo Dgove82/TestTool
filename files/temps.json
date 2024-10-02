@@ -1,0 +1,28 @@
+[
+  {
+    "func": "set_value",
+    "params": {
+      "value": "1",
+      "name": "good"
+    },
+    "depict_func": "设置值1",
+    "depict_params": {
+      "name": "名称",
+      "value": "值"
+    },
+    "depict_return": "/"
+  },
+  {
+    "func": "set_expose",
+    "params": {
+      "value": "1",
+      "name": "good"
+    },
+    "depict_func": "设置值2",
+    "depict_params": {
+      "name": "名称",
+      "value": "值"
+    },
+    "depict_return": "/"
+  }
+]
