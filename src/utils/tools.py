@@ -40,6 +40,10 @@ class File:
         #     print(f'不存在，且遇到问题:{e}')
         #     return False
 
+    def write(self, data):
+        with open(self.path, 'w', encoding='utf-8') as f:
+            f.write(data)
+
 
 class JsonFile(File):
     def __init__(self, path):

@@ -1,5 +1,5 @@
 import os.path
-
+from typing import Union
 from sqlalchemy import create_engine, Column, Integer, String, delete
 from sqlalchemy.orm import sessionmaker, declarative_base
 import settings
@@ -19,6 +19,9 @@ class Function(Base):
     depict_func = Column(String)
     depict_params = Column(String)
     depict_return = Column(String)
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class Hotkey(Base):
@@ -77,15 +80,37 @@ class SQLserver:
         return next(self.get_session())
 
     def delete_model(self, model):
+        """
+        清空数据表
+        :param model:
+        :return:
+        """
         delete_statement = delete(model)
         session = self.get_db()
         try:
             session.execute(delete_statement)
             session.commit()
             log.success(f'{model.__tablename__}数据表已清空')
-        except Exception as e:
+        except Exception as err:
             session.rollback()
-            print(f"清空{model.__tablename__}表时发生错误: {e}")
+            log.error(f"清空{model.__tablename__}表时发生错误: {err}")
         finally:
             # 关闭session
+            session.close()
+
+    def insert(self, data: Union[list, Base]):
+        session = self.get_db()
+        try:
+            if isinstance(data, list):
+                session.add_all(data)
+            elif isinstance(data, Base):
+                session.add(data)
+            else:
+                raise TypeError
+            session.commit()
+            log.success(f'数据记录插入成功')
+        except Exception as err:
+            session.rollback()
+            log.error(f'插入失败,原因:{err}')
+        finally:
             session.close()

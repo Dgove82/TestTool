@@ -23,3 +23,5 @@ EVENTS_PATH = FILES_PATH.joinpath('events.log')
 
 PROCESS_PATH = FILES_PATH.joinpath('process.json')
 
+CASE_PATH = FILES_PATH.joinpath('case.py')
+

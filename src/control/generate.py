@@ -55,8 +55,6 @@ class FuncParse:
         server = SQLserver()
         server.delete_model(Function)
 
-        db = server.get_db()
-
         for res_dict in self.regex():
             log.info(f'方法{res_dict.items()}')
             func = Function()
@@ -68,13 +66,8 @@ class FuncParse:
             func.depict_return = depict[2]
 
             res.append(func)
-        try:
-            db.add_all(res)
-            db.commit()
-            log.success(f'{Function.__tablename__}数据初始化完毕')
-        except Exception as e:
-            db.rollback()
-            log.error(f'{Function.__tablename__}初始化异常: {e}')
+
+        server.insert(res)
 
     def hanlder_test(self):
         """
