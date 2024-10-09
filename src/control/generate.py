@@ -2,7 +2,7 @@ import json
 import re
 import settings
 from src.utils.model import SQLserver, Function
-from src.utils.tools import JsonFile, log
+from common.tools import JsonFile, log
 
 LIBRARY_PATH = settings.BASE_PATH.joinpath('library')
 LIB_ELEMENT = LIBRARY_PATH.joinpath('element.py')

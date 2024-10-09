@@ -1,6 +1,6 @@
 import settings
 import json
-from src.utils.tools import log, JsonFile, File
+from common.tools import log, JsonFile, File
 from src.utils.model import Function, SQLserver
 from src.utils.errors import RunError
 from library.element import Element

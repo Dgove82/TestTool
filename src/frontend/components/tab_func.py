@@ -1,68 +1,6 @@
-import sys
-
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QFile, QTextStream
-
-
-class App(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        # 最外层布局
-
-        self.outest_layout = QVBoxLayout()
-
-        self.tab_widget = QTabWidget()
-
-        self.tab_temp = TempTab()
-        self.tab_sub = FuncTab()
-
-        self.load_window()
-        # self.load_qss()
-
-    def load_window(self):
-        # 设置主窗口的标题和初始大小
-        self.setWindowTitle('测试小工具')
-        self.setGeometry(100, 100, 800, 600)
-
-        # 创建一个中心窗口
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        # 设置垂直布局
-        central_widget.setLayout(self.outest_layout)
-
-        # 创建并添加大标题
-        title_label = QLabel('测试小工具', self)
-        title_label.setStyleSheet("font-size: 30pt")
-        title_label.setAlignment(Qt.AlignCenter)
-
-        self.outest_layout.addWidget(title_label)
-
-        # 创建分页
-        self.outest_layout.addWidget(self.tab_widget)
-        self.tab_widget.setStyleSheet("""
-            QTabBar::tab:selected {
-                background-color: #4d85ff;
-                color: white;
-            }
-            QTabBar::tab:!selected {
-                background-color: lightgrey;
-                color: black;
-            }
-        """)
-
-        self.tab_widget.addTab(self.tab_sub, '方法执行')
-
-        self.tab_widget.addTab(self.tab_temp, '临时页')
-
-
-class SubDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        dialog_layout = QVBoxLayout()
-        info_label = QLabel('执行中')
-        dialog_layout.addWidget(info_label)
-        self.setLayout(dialog_layout)
+from PyQt5.QtCore import Qt
+from src.frontend.components.elements import TempDialog, CommonButton
 
 
 class FuncTab(QWidget):
@@ -74,8 +12,8 @@ class FuncTab(QWidget):
         # 控件
         self.search_line_edit = QLineEdit()
         self.search_btn = QPushButton("搜索")
-        self.res_show_view = QListWidget()
-        self.process_show_view = QListWidget()
+        self.res_show_view = QListWidget(self)
+        self.process_show_view = QListWidget(self)
         self.exec_btn = QPushButton('执行流程')
         self.reset_btn = QPushButton('重置流程')
         self.read_cache_btn = QPushButton('读取流程')
@@ -96,16 +34,19 @@ class FuncTab(QWidget):
         :return:
         """
         self.setLayout(self.tab_func_layout)
-        info_layout = QHBoxLayout()
-        self.tab_func_layout.addLayout(info_layout)
+        search_layout = QHBoxLayout()
+        self.tab_func_layout.addLayout(search_layout)
+
+        conf_btn = CommonButton('系统参数配置')
+        search_layout.addWidget(conf_btn)
 
         search_label = QLabel()
         search_label.setText('搜索:')
-        info_layout.addWidget(search_label)
+        search_layout.addWidget(search_label)
 
         self.search_line_edit.setPlaceholderText('请输入方法关键字')
-        info_layout.addWidget(self.search_line_edit)
-        info_layout.addWidget(self.search_btn)
+        search_layout.addWidget(self.search_line_edit)
+        search_layout.addWidget(self.search_btn)
 
     def func_show_result(self):
         """
@@ -169,10 +110,27 @@ class FuncTab(QWidget):
             self.process_additem(str(index))
 
     def func_show_process(self):
+        process_layout = QHBoxLayout()
+
+        info_layout = QVBoxLayout()
         info_label = QLabel()
         info_label.setText('流程显示:')
-        self.tab_func_layout.addWidget(info_label)
-        self.tab_func_layout.addWidget(self.process_show_view)
+        info_layout.addWidget(info_label)
+        info_layout.addWidget(self.process_show_view)
+
+        log_layout = QVBoxLayout()
+        log_label = QLabel()
+        log_label.setText('执行日志:')
+        editbox = QTextEdit()
+        editbox.setReadOnly(True)
+        editbox.append('测试信息')
+
+        log_layout.addWidget(log_label)
+        log_layout.addWidget(editbox)
+
+        process_layout.addLayout(info_layout)
+        process_layout.addLayout(log_layout)
+        self.tab_func_layout.addLayout(process_layout)
 
         self.process_show_view.setStyleSheet("""
                 QListWidget::item{
@@ -231,31 +189,9 @@ class FuncTab(QWidget):
         control_layout.addWidget(self.generate_btn)
 
     def func_exec_exec(self):
-        dialog = SubDialog(self)
+        dialog = TempDialog(self)
 
         dialog.exec_()
 
     def func_reset_exec(self):
         self.process_show_view.clear()
-
-
-class TempTab(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.init_ui()
-
-    def init_ui(self):
-        temp_layout = QVBoxLayout()
-        self.setLayout(temp_layout)
-        tip_label = QLabel('敬请期待')
-        tip_label.setStyleSheet('font-size: 60pt')
-        tip_label.setAlignment(Qt.AlignCenter)
-        temp_layout.addWidget(tip_label)
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = App()
-    ex.show()
-    sys.exit(app.exec_())
