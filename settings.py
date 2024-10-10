@@ -25,3 +25,6 @@ PROCESS_PATH = FILES_PATH.joinpath('process.json')
 
 CASE_PATH = FILES_PATH.joinpath('case.py')
 
+LIBRARY_PATH = BASE_PATH.joinpath('library')
+
+LIB_ELEMENT = LIBRARY_PATH.joinpath('element.py')

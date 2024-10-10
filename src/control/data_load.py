@@ -4,9 +4,6 @@ import settings
 from src.utils.model import SQLserver, Function
 from common.tools import JsonFile, log
 
-LIBRARY_PATH = settings.BASE_PATH.joinpath('library')
-LIB_ELEMENT = LIBRARY_PATH.joinpath('element.py')
-
 
 class FuncModel:
     def __init__(self, func=None, params=None, depict_func=None, depict_params=None, depict_return=None):
@@ -145,4 +142,4 @@ class FuncParse:
 
 if __name__ == '__main__':
     # log.info(f'{"a"}?')
-    FuncParse(LIB_ELEMENT).handler()
+    FuncParse(settings.LIB_ELEMENT).handler()
