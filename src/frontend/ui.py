@@ -13,7 +13,7 @@ class App(QMainWindow):
         super().__init__()
         # 最外层布局
 
-        self.outest_layout = QVBoxLayout()
+        self.outermost_layout = QVBoxLayout()
 
         self.tab_widget = QTabWidget()
 
@@ -32,17 +32,17 @@ class App(QMainWindow):
         self.setCentralWidget(central_widget)
 
         # 设置垂直布局
-        central_widget.setLayout(self.outest_layout)
+        central_widget.setLayout(self.outermost_layout)
 
         # 创建并添加大标题
         title_label = QLabel('测试小工具', self)
         title_label.setStyleSheet("font-size: 30pt")
         title_label.setAlignment(Qt.AlignCenter)
 
-        self.outest_layout.addWidget(title_label)
+        self.outermost_layout.addWidget(title_label)
 
         # 创建分页
-        self.outest_layout.addWidget(self.tab_widget)
+        self.outermost_layout.addWidget(self.tab_widget)
         self.tab_widget.setStyleSheet("""
             QTabBar::tab:selected {
                 background-color: #4d85ff;

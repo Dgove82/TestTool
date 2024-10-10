@@ -1,4 +1,12 @@
-class Element:
+"""
+控件操作方法
+"""
+
+from library.base import BasicMethod
+
+
+class Element(BasicMethod):
+
     def set_value(self, value='1', name="good"):
         """
         设置值
@@ -16,4 +24,3 @@ class Element:
         :return:
         """
         print(value, name)
-

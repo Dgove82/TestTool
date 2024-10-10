@@ -143,10 +143,6 @@ class FuncParse:
         return depict_func, depict_params, depict_return
 
 
-def handle():
-    pass
-
-
 if __name__ == '__main__':
     # log.info(f'{"a"}?')
     FuncParse(LIB_ELEMENT).handler()

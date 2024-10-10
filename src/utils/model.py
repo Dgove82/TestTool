@@ -3,14 +3,22 @@ from typing import Union
 from sqlalchemy import create_engine, Column, Integer, String, delete
 from sqlalchemy.orm import sessionmaker, declarative_base
 import settings
-from src.utils.tools import log
+from common.tools import log
 
 # 创建基类
 Base = declarative_base()
 
 
+class ModelBase(Base):
+    __abstract__ = True
+
+    @classmethod
+    def to_dict(cls, instance):
+        return {c.name: getattr(instance, c.name) for c in cls.__table__.columns}
+
+
 # 定义模型
-class Function(Base):
+class Function(ModelBase):
     __tablename__ = 'functions'
 
     id = Column(Integer, primary_key=True)
@@ -20,11 +28,8 @@ class Function(Base):
     depict_params = Column(String)
     depict_return = Column(String)
 
-    def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
-
-class Hotkey(Base):
+class Hotkey(ModelBase):
     __tablename__ = 'hotkeys'
     id = Column(Integer, primary_key=True)
     hotkeys = Column(String)
@@ -33,7 +38,7 @@ class Hotkey(Base):
     index_params = Column(String)
 
 
-class Record(Base):
+class Record(ModelBase):
     __tablename__ = 'records'
 
     id = Column(Integer, primary_key=True)
@@ -42,13 +47,14 @@ class Record(Base):
     record_time = Column(String)
 
 
-class Confs(Base):
+class Confs(ModelBase):
     __tablename__ = 'confs'
 
     id = Column(Integer, primary_key=True)
     keys = Column(String)
     values = Column(String)
     depict_key = Column(String)
+    required = Column(Integer)
 
 
 # 创建 SQLite 数据库引擎
@@ -67,6 +73,19 @@ if not os.path.exists(settings.DB_PATH):
 
 class SQLserver:
     SESSION = sessionmaker(autoflush=True, bind=engine)
+
+    @staticmethod
+    def load_conf():
+        """
+        获取Conf表所有数据
+        :return:
+        """
+        db = SQLserver().get_db()
+        confs = db.query(Confs).all()
+        conf = dict()
+        for c in confs:
+            conf.update({c.keys: c.to_dict(c)})
+        return conf
 
     @staticmethod
     def get_session():

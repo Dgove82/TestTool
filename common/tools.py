@@ -15,6 +15,11 @@ class File:
         self.dir = None
         self.name = None
 
+    @staticmethod
+    def check_path(path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
     def parse_path(self):
         eles = self.path.split('/')
         if re.match(r'.*?\.\w+', eles[-1]):

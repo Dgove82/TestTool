@@ -89,7 +89,7 @@ class ControlCenter:
         """
         steps = []
         for f in ControlCenter.steps:
-            steps.append(f.to_dict())
+            steps.append(f.to_dict(f))
         JsonFile(settings.PROCESS_PATH).write(steps)
         log.info('流程步骤缓存完毕')
 
