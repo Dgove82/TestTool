@@ -7,3 +7,4 @@ CONF = None
 
 if os.path.exists(settings.DB_PATH):
     CONF = SQLserver.load_conf()
+

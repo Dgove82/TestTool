@@ -1,6 +1,6 @@
 import settings
 import json
-from common.tools import log, JsonFile, File
+from common.tools import log, JsonFile, File, watch
 from src.utils.model import Function, SQLserver
 from src.utils.errors import RunError
 from library.element import Element
@@ -18,6 +18,9 @@ class ControlCenter:
 
     @staticmethod
     def func_search(depict_func):
+        """
+        搜索方法
+        """
         ControlCenter.search_record = []
         session = SQLserver().get_db()
         funcs = session.query(Function).filter(Function.depict_func.like(f'%{depict_func}%')).all()
@@ -26,24 +29,53 @@ class ControlCenter:
 
     @staticmethod
     def step_click(record_index=0):
+        """
+        选中搜索结果中的方法
+        """
         if record_index > len(ControlCenter.search_record):
             raise IndexError
         else:
             ControlCenter.record_checked = record_index
 
     @staticmethod
-    def step_add(pos=None, kwargs: dict = None):
+    def func_step_insert(pos=None, kwargs: str = None):
         """
-        新增步骤, 根据位置插入步骤,并配置参数
+        新增存在方法步骤, 根据位置插入步骤,并配置参数
         """
         func: Function = ControlCenter.search_record[ControlCenter.record_checked]
-        if kwargs is not None:
-            func.params = kwargs
-        if pos is None or pos >= len(ControlCenter.search_record):
-            ControlCenter.steps.append(func)
+        func_step = {
+            "type": "exist",
+            "func": func.func,
+            "params": kwargs if kwargs is not None else func.params,
+            "depict_func": func.depict_func,
+            "depict_params": func.depict_params,
+            "depict_return": func.depict_return,
+        }
+
+        if pos is None or pos >= len(ControlCenter.steps):
+            ControlCenter.steps.append(func_step)
         else:
-            ControlCenter.steps.insert(pos, func)
-        log.info(f'<{func.depict_func}>方法以添加成功')
+            ControlCenter.steps.insert(pos, func_step)
+        log.info(f'<{func_step.get("depict_func", None)}> 已添加成功')
+
+    @staticmethod
+    def define_step_insert(pos=None):
+        """
+        define_step为json字符串
+        {"name": 自定义昵称, "events": [{}, {}]}
+        """
+        watch.start()
+
+        events = watch.events
+
+        # define_step = json.loads(define_step)
+        define_step = {"type": "define", "events": events}
+
+        if pos is None or pos >= len(ControlCenter.steps):
+            ControlCenter.steps.append(define_step)
+        else:
+            ControlCenter.steps.insert(pos, define_step)
+        log.info(f'<{define_step.get("name", "自定义方法")}> 已添加成功')
 
     @staticmethod
     def step_del(pos=None):
@@ -73,13 +105,18 @@ class ControlCenter:
         方法执行
         :return:
         """
+        print(ControlCenter.steps)
         ele = Element()
         for f in ControlCenter.steps:
-            try:
-                getattr(ele, f.func)(**json.loads(f.params))
-            except Exception as e:
-                log.error(f'执行{f.depict_func}遇到问题:{e}')
-                raise RunError(str(e))
+            f_type = f['type']
+            if f_type == 'exist':
+                try:
+                    getattr(ele, f.get("func", None))(**json.loads(f.get("params", "{}")))
+                except Exception as e:
+                    log.error(f'执行{f.depict_func}遇到问题:{e}')
+                    raise RunError(str(e))
+            elif f_type == 'define':
+                watch.replay_events(f.get("events"))
 
     @staticmethod
     def steps_save():
@@ -87,10 +124,7 @@ class ControlCenter:
         方法存储至process.json
         :return:
         """
-        steps = []
-        for f in ControlCenter.steps:
-            steps.append(f.to_dict(f))
-        JsonFile(settings.PROCESS_PATH).write(steps)
+        JsonFile(settings.PROCESS_PATH).write(ControlCenter.steps)
         log.info('流程步骤缓存完毕')
 
     @staticmethod
@@ -99,28 +133,45 @@ class ControlCenter:
         将steps反向生成py
         :return:
         """
-        header = """from library.element import Element\n
+        header = """from library.element import Element
+from common.tools import watch\n
 ele = Element()\n\n
 def case():\n"""
         content = ''
+
+        index = 1
+
         for f in ControlCenter.steps:
-            params = json.loads(f.params)
-            temp_params = [f'{key}="{params[key]}"' for key in params]
-            content += f'    ele.{f.func}({", ".join(temp_params)})\n'
+            f_type = f.get("type", None)
+            if f_type == 'exist':
+                params = json.loads(f.get("params", "{}"))
+                func = f.get("func", None)
+                temp_params = [f'{key}="{params[key]}"' for key in params]
+                content += f'    ele.{func}({", ".join(temp_params)})\n'
+            elif f_type == 'define':
+                content += f'    event_{index} = {f.get("events", None)}\n'
+                content += f'    watch.replay_events(event_{index})\n'
+                index += 1
+            else:
+                log.warning(f'暂不支持{f}方法')
+                continue
         File(settings.CASE_PATH).write(header + content)
         log.success('函数方法生成完毕')
         return header + content
+
+    @staticmethod
+    def define_func_record():
+        pass
 
 
 if __name__ == '__main__':
     ControlCenter.func_search('值')
     ControlCenter.step_click(1)
-    ControlCenter.step_add()
-    ControlCenter.step_add()
+    ControlCenter.func_step_insert()
+    ControlCenter.define_step_insert()
+    ControlCenter.func_step_insert()
     ControlCenter.step_click(0)
-    ControlCenter.step_add()
+    ControlCenter.func_step_insert()
     ControlCenter.steps_exec()
     ControlCenter.steps_save()
     ControlCenter.generate_py()
-
-
