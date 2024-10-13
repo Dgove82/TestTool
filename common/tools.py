@@ -2,28 +2,97 @@ import hashlib
 import json
 import os.path
 import re
+import subprocess
 import time
 import sys
 import inspect
+import atexit
 import pyautogui
 from loguru import logger
 from pynput import keyboard, mouse
 from PIL import ImageDraw, Image
 
+
+from src.utils.errors import FileExistError
 import settings
 
 
 class WatchTool:
-    def __init__(self, watch=False):
+    def __init__(self, monitor=False):
         self.__events = []
-        self.mouse_listener = None
-        self.keyboard_listener = None
-        self.watch = watch
+
+        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+
+        # 是否监听鼠标点击事件
+        self.monitor: bool = monitor
+
+        # 视频录制进程
+        self.ffmpeg = None
 
     @property
     def events(self):
         return self.__events
         # return json.dumps(self.__events)
+
+    @property
+    def is_listening(self):
+        """
+        判断是否处理监听中
+        :return:
+        """
+        return self.mouse_listener.is_alive()
+
+    @property
+    def is_recording(self):
+        if self.ffmpeg is None:
+            return False
+        return self.ffmpeg.poll() is None
+
+    def start_record_video(self, video_name='temp.mp4', timeout: int = None):
+        if not os.path.exists(settings.TOOL_FFMPEG):
+            log.error(f'缺少依赖程序:<{settings.TOOL_FFMPEG}> 不存在>')
+            raise FileExistError(f'缺少依赖程序:<{settings.TOOL_FFMPEG}> 不存在>')
+
+        cmd = None
+        if settings.RUN_ENV == 'Darwin':
+            cmd = [
+                str(settings.TOOL_FFMPEG),
+                '-y',  # 直接覆盖保存
+                '-f', 'avfoundation',
+                '-i', '1',  # 请确保这是正确的设备索引
+                '-r', '20',
+            ]
+        elif settings.RUN_ENV == 'Windows':
+            cmd = [
+                str(settings.TOOL_FFMPEG),
+                '-y',  # 直接覆盖保存
+                '-f', 'gdigrab',
+                '-i', 'desktop',  # 请确保这是正确的设备索引
+                '-r', '30'
+            ]
+
+        if timeout is not None:
+            cmd.append('-t')
+            cmd.append(str(timeout))
+
+        cmd.append(str(settings.VIDEO_DIR.joinpath(video_name)))
+
+        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log.info(f'开始录制<{video_name}>视频')
+
+    def stop_record_video(self):
+        if self.is_recording:
+            self.ffmpeg.stdin.write(b'q')
+            self.ffmpeg.stdin.flush()
+            self.ffmpeg.communicate()
+            log.success('已停止视频录制')
+            self.ffmpeg = None
+        else:
+            if self.ffmpeg is not None:
+                log.warning('当前并未在录制视频')
+                _, stderr = self.ffmpeg.communicate()
+                log.error(f'FFmpeg 错误: {stderr.decode()}')
 
     @staticmethod
     def add_label_in_image(image: Image, center_x, center_y, radius=10):
@@ -35,9 +104,10 @@ class WatchTool:
         draw.ellipse((center_x - 2, center_y - 2, center_x + 2, center_y + 2),
                      outline=color, width=4)
 
-    def img_record(self, center_x: float = 0, center_y: float = 0, rectangle: int = 50, full: bool = True):
-        center_x = int(center_x)
-        center_y = int(center_y)
+    def img_record(self, rectangle: int = 50, full: bool = False):
+        mouse_position = pyautogui.position()
+        center_x = int(mouse_position.x)
+        center_y = int(mouse_position.y)
         if full:
             screenshot = pyautogui.screenshot()
             size = pyautogui.size()
@@ -60,9 +130,9 @@ class WatchTool:
 
     def on_click(self, x, y, button, pressed):
         self.append_event(['click', button.name, pressed, x, y])
-        if self.watch and pressed:
+        if self.monitor and pressed:
             log.info(f"按下<{x}, {y}>处")
-            self.img_record(x, y)
+            self.img_record()
 
     def on_move(self, x, y):
         self.append_event(['move', x, y])
@@ -71,10 +141,14 @@ class WatchTool:
         self.append_event(['scroll', x, y, dx, dy])
 
     def on_press(self, key):
-        self.append_event(['press', str(key)])
+        if self.is_listening:
+            self.append_event(['press', str(key)])
 
     def on_release(self, key):
-        if key == keyboard.Key.esc:
+        if key == keyboard.Key.down and not self.is_listening:
+            log.info('开始录制')
+            self.mouse_listener.start()
+        elif key == keyboard.Key.esc:
             self.stop()
             log.info('录制结束')
         else:
@@ -85,10 +159,7 @@ class WatchTool:
         self.keyboard_listener.stop()
 
     def start(self):
-        log.info('开始录制')
-        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        self.mouse_listener.start()
+        log.info('按下 ⬇️ 键开始录制')
         self.keyboard_listener.start()
         self.keyboard_listener.join()
         self.mouse_listener.join()
@@ -189,8 +260,14 @@ class File:
         with open(self.path, 'w'):
             pass
 
+    def is_exists(self):
+        return os.path.exists(self.path)
+
     def exists(self):
-        # try:
+        """
+        确保文件/目录存在
+        :return:
+        """
         self.parse_path()
         if os.path.exists(self.path):
             return True
@@ -198,9 +275,6 @@ class File:
             os.makedirs(self.dir, exist_ok=True)
             self.create_file()
             return True
-        # except Exception as e:
-        #     print(f'不存在，且遇到问题:{e}')
-        #     return False
 
     def write(self, data):
         with open(self.path, 'w', encoding='utf-8') as f:
@@ -316,6 +390,10 @@ class LogTool:
 
 
 log = LogTool(log_file=f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log')
+
 watch = WatchTool()
+
+atexit.register(watch.stop_record_video)
+
 if __name__ == '__main__':
     print(log.info(msg="Hello World"))

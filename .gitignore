@@ -8,6 +8,13 @@ __pycache__/
 
 .DS_Store
 
+.idea
+
+deps/mac/*
+deps/win/*
+/files/images/*
+/files/videos/*
+
 # Distribution / packaging
 .Python
 env/

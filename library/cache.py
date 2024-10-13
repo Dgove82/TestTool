@@ -15,4 +15,9 @@ class CacheElemnt:
 
 
 class RunInfo:
-    Version = None
+
+    def __init__(self):
+        self.version = None
+
+
+run_info = RunInfo()
