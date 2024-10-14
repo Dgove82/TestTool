@@ -1,10 +1,10 @@
 import time
 
 from src.frontend.public import AppRoot
-from src.frontend.public.tab_func import control_func,ui_log
+from src.frontend.public import control_func
 from common.tools import Singleton
 from src.control.center import ControlCenter
-from src.frontend.component.control import ExecDialog
+from src.frontend.component.control import ExecDialog, TaskThread
 from PyQt5.QtWidgets import *
 
 
@@ -28,17 +28,17 @@ class FuncAction(Singleton):
         """
         index = self.control.search_result_list.currentRow()
         self.control.process_list.addItem(str(index))
-        ControlCenter.info_test()
 
     def action_open_result_menu(self, position):
         """
         搜索结果右键菜单
         """
+        selected_index = control_func.search_result_list.currentRow()
         self.control.right_menu.clear()
         add_action = QAction('添加: 将步骤添加至流程中')
         self.control.right_menu.addAction(add_action)
         add_action.triggered.connect(lambda: self.handle_action('step_add'))
-
+        self.control.right_menu.setEnabled(selected_index != -1)
         self.control.right_menu.exec_(self.control.search_result_list.mapToGlobal(position))
 
     def action_open_process_menu(self, position):
@@ -76,9 +76,10 @@ class FuncAction(Singleton):
         """
         执行搜索
         """
+        self.control.search_result_list.clear()
         search_key = self.control.search_line.text()
         ControlCenter.func_search(search_key)
-        ui_log.info(f'搜索到{len(ControlCenter.search_record)}个方法')
+        AppRoot.ui_log.info(f'搜索到{len(ControlCenter.search_record)}个方法')
         for index, func in enumerate(ControlCenter.search_record):
             line = f'{index + 1}.{func.depict_func}'
             self.control.search_result_list.addItem(line)
@@ -90,17 +91,19 @@ class FuncAction(Singleton):
         pass
 
     def run(self):
-        time.sleep(10)
+        for i in range(10):
+            AppRoot.ui_log.info('执行中')
+            time.sleep(1)
 
     def action_process_exec(self):
-        ui_log.warning('开始执行流程，目前中途无法中断，只能通过关闭整个程序')
-        AppRoot.run_task.start()
+        AppRoot.ui_log.info('开始执行流程')
+        self.control.run_task.start()
 
         self.app.dialog = ExecDialog(AppRoot.root)
         self.app.dialog.exec_()
 
     def action_process_reset(self):
-        ui_log.info('流程已重置')
+        AppRoot.ui_log.info('流程已重置')
         self.control.process_list.clear()
 
     def action_read_process(self):

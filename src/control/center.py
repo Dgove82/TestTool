@@ -4,7 +4,7 @@ from common.tools import log, JsonFile, File, watch
 from src.utils.model import Function, SQLserver
 from src.utils.errors import RunError
 from library.element import Element
-from src.frontend.public.tab_func import ui_log
+
 
 class ControlCenter:
     """
@@ -162,13 +162,6 @@ def case():\n"""
     @staticmethod
     def define_func_record():
         pass
-
-    @staticmethod
-    def info_test():
-        ui_log.info('hello world')
-        ui_log.warning('warning')
-        ui_log.error('error')
-        ui_log.success('success')
 
 
 if __name__ == '__main__':

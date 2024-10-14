@@ -1,10 +1,11 @@
+import time
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QTextCursor, QColor, QTextCharFormat
-from PyQt5.QtCore import Qt, QObject, pyqtSignal
-
-
-class LogSignal(QObject):
-    log_signal = pyqtSignal(str)
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from common.tools import LogTool
+from src.control.center import ControlCenter
+from src.frontend.public import control_func, AppRoot
 
 
 class BaseDialog(QDialog):
@@ -22,6 +23,13 @@ class BaseDialog(QDialog):
             self.move(left, top)
 
 
+class TaskThread(QThread):
+    def run(self):
+        for i in range(10):
+            time.sleep(1)
+            AppRoot.ui_log.info('执行中')
+
+
 class ExecDialog(BaseDialog):
     """
     执行会话框
@@ -37,12 +45,17 @@ class ExecDialog(BaseDialog):
         self.center_on_parent()
 
         self.setWindowTitle('流程')
-        info_label = QLabel('执行中')
+        info_label = QLabel('执行中，若是关闭窗口会结束流程')
+        info_label.setAlignment(Qt.AlignCenter)
         dialog_layout.addWidget(info_label)
         self.setLayout(dialog_layout)
 
     def closeEvent(self, event):
-        print('关闭')
+        if control_func.run_task.isRunning():
+            control_func.run_task.terminate()
+            AppRoot.ui_log.warning('流程强行中断中')
+            control_func.run_task.wait()
+            AppRoot.ui_log.success('流程已被中断')
         event.accept()
 
 
@@ -67,6 +80,18 @@ class CommonButton(QPushButton):
 
     def leaveEvent(self, event):
         self.unsetCursor()
+
+
+class LogThread(QThread, LogTool):
+    log_signal = pyqtSignal(str)
+
+    def __init__(self, log_level="DEBUG", log_file='log.log', parent=None):
+        QThread.__init__(self, parent)  # 初始化QThread基类
+        LogTool.__init__(self, log_level=log_level, log_file=log_file)
+
+    def capture_msg(self, message):
+        super().capture_msg(message)
+        self.log_signal.emit(message)
 
 
 class LogEditBox(QTextEdit):

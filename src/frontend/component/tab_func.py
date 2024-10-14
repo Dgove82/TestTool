@@ -1,8 +1,7 @@
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
-from src.frontend.component.control import ExecDialog, CommonButton
-from src.frontend.public.tab_func import control_func
-from src.frontend.component.control import LogEditBox
+from PyQt5.QtCore import Qt, QThread
+from src.frontend.component.control import CommonButton, TaskThread
+from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 
 
@@ -30,8 +29,8 @@ class FuncTab(QWidget):
         control_func.read_process_btn = CommonButton('读取流程')
         control_func.save_process_btn = CommonButton('保存流程')
         control_func.generate_py_btn = CommonButton('生成py')
-        control_func.log_editbox = LogEditBox()
         control_func.right_menu = QMenu()
+        control_func.run_task = TaskThread()
 
         self.init_ui()
         self.connect_action()
@@ -51,7 +50,7 @@ class FuncTab(QWidget):
         self.search_result_ui()
         self.func_process_ui()
         self.execute_btn_ui()
-        self.log_info_ui()
+        # self.log_info_ui()
 
     def connect_action(self):
         FuncAction().load_action()
@@ -143,6 +142,3 @@ class FuncTab(QWidget):
         log_layout.addWidget(log_label)
         log_layout.addWidget(control_func.log_editbox)
         self.bottom_layout.addLayout(log_layout)
-
-    def func_reset_exec(self):
-        control_func.process_list.clear()
