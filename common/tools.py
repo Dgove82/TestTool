@@ -12,9 +12,20 @@ from loguru import logger
 from pynput import keyboard, mouse
 from PIL import ImageDraw, Image
 
-
 from src.utils.errors import FileExistError
 import settings
+
+
+class Singleton:
+    """
+    仅允许单次实例化
+    """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
 
 
 class WatchTool:
@@ -69,16 +80,18 @@ class WatchTool:
                 '-y',  # 直接覆盖保存
                 '-f', 'gdigrab',
                 '-i', 'desktop',  # 请确保这是正确的设备索引
-                '-r', '30'
+                '-b:v', '500k',
+                '-vcodec', 'mpeg4',
+                '-r', '20',
+                '-preset', 'veryfast'
             ]
 
         if timeout is not None:
-            cmd.append('-t')
-            cmd.append(str(timeout))
+            cmd.extend(['-t', str(timeout)])
 
         cmd.append(str(settings.VIDEO_DIR.joinpath(video_name)))
 
-        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         log.info(f'开始录制<{video_name}>视频')
 
     def stop_record_video(self):
@@ -331,8 +344,8 @@ class LogTool:
         self.configure_logging()
         self.last_info = None
 
-    def capture_msg(self, messgae):
-        self.last_info = messgae.format()
+    def capture_msg(self, message):
+        self.last_info = message.format()
 
     def configure_logging(self):
         # 配置日志格式和输出
@@ -361,32 +374,32 @@ class LogTool:
         prefix = f"{file_path}{'.' + frame.function if frame.function != '<module>' else ''}:{frame.lineno} "
         return prefix
 
-    def __log(self, level: str, msg: str):
+    def msg_struct(self, level: str, msg: str):
         prefix = self.prefix_info()
         log_method = getattr(self.logger, level.lower())
         log_method(msg, prefix=prefix)
         return self.last_info
 
     def info(self, msg):
-        return self.__log(level="INFO", msg=msg)
+        return self.msg_struct(level="INFO", msg=msg)
 
     def debug(self, msg):
-        return self.__log(level="DEBUG", msg=msg)
+        return self.msg_struct(level="DEBUG", msg=msg)
 
     def warning(self, msg):
-        return self.__log(level="WARNING", msg=msg)
+        return self.msg_struct(level="WARNING", msg=msg)
 
     def error(self, msg):
-        return self.__log(level="ERROR", msg=msg)
+        return self.msg_struct(level="ERROR", msg=msg)
 
     def success(self, msg):
-        return self.__log(level="SUCCESS", msg=msg)
+        return self.msg_struct(level="SUCCESS", msg=msg)
 
     def critical(self, msg):
-        return self.__log(level="CRITICAL", msg=msg)
+        return self.msg_struct(level="CRITICAL", msg=msg)
 
     def exception(self, msg):
-        return self.__log(level="EXCEPTION", msg=msg)
+        return self.msg_struct(level="EXCEPTION", msg=msg)
 
 
 log = LogTool(log_file=f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log')
