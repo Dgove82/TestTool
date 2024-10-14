@@ -1,17 +1,18 @@
 import sys
-
 from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QTabWidget,
                              QWidget, QLabel, QApplication)
 from PyQt5.QtCore import Qt
 
-from src.frontend.components.tab_func import FuncTab
-from src.frontend.components.tab_temp import TempTab
+from src.frontend.component.tab_func import FuncTab
+from src.frontend.component.tab_temp import TempTab
+from src.frontend.public import AppRoot
 
 
 class App(QMainWindow):
     def __init__(self):
         super().__init__()
         # 最外层布局
+        AppRoot.root = self
 
         self.outermost_layout = QVBoxLayout()
 

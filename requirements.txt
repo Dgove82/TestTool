@@ -11,10 +11,6 @@ pyinstaller==5.13.2
 pyinstaller-hooks-contrib==2024.7
 PyMsgBox==1.0.9
 pynput==1.7.7
-pyobjc-core==9.2
-pyobjc-framework-ApplicationServices==9.2
-pyobjc-framework-Cocoa==9.2
-pyobjc-framework-Quartz==9.2
 pyperclip==1.9.0
 PyQt5==5.15.10
 PyQt5-Qt5==5.15.15
