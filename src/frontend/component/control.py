@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QTextCursor, QColor, QTextCharFormat
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from common.tools import LogTool
-from src.control.center import ControlCenter
 from src.frontend.public import control_func, AppRoot
 
 
@@ -84,10 +83,6 @@ class CommonButton(QPushButton):
 
 class LogThread(QThread, LogTool):
     log_signal = pyqtSignal(str)
-
-    def __init__(self, log_level="DEBUG", log_file='log.log', parent=None):
-        QThread.__init__(self, parent)  # 初始化QThread基类
-        LogTool.__init__(self, log_level=log_level, log_file=log_file)
 
     def capture_msg(self, message):
         super().capture_msg(message)

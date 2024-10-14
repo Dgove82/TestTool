@@ -336,8 +336,11 @@ class TimeTool:
         return time.strftime("%Y-%m-%d", TimeTool.now())
 
 
+LOG_FILE = f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log'
+
+
 class LogTool:
-    def __init__(self, log_level="DEBUG", log_file='log.log'):
+    def __init__(self, log_level="DEBUG", log_file=LOG_FILE):
         self.log_level = log_level
         self.log_file = log_file
         self.logger = logger
@@ -402,7 +405,7 @@ class LogTool:
         return self.msg_struct(level="EXCEPTION", msg=msg)
 
 
-log = LogTool(log_file=f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log')
+log = LogTool()
 
 watch = WatchTool()
 

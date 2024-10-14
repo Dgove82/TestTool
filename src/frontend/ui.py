@@ -75,17 +75,15 @@ class App(QMainWindow):
         self.outermost_layout.addLayout(log_layout)
 
     def log_record_start(self):
-        AppRoot.ui_log = LogThread(log_file=f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log')
+        AppRoot.ui_log = LogThread()
         AppRoot.ui_log.log_signal.connect(self.log_editbox.append_color_info)
         AppRoot.ui_log.start()
         AppRoot.ui_log.success('日志线程已就绪...')
 
     def closeEvent(self, event):
-        print(AppRoot.ui_log.isRunning())
         if AppRoot.ui_log.isRunning():
             AppRoot.ui_log.terminate()
             AppRoot.ui_log.wait()
-        print(AppRoot.ui_log.isRunning())
 
 
 if __name__ == '__main__':
