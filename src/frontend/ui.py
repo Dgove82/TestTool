@@ -5,17 +5,16 @@ from PyQt5.QtCore import Qt
 
 from src.frontend.component.tab_func import FuncTab
 from src.frontend.component.tab_temp import TempTab
-from src.frontend.component.control import LogThread, LogEditBox
-from src.frontend.public import AppRoot
-from common.tools import TimeTool
-import settings
+from src.frontend.component.control import LogThread, LogEditBox, KeyWatchThread
+from src.frontend.public import app_root
+from pynput import keyboard
 
 
 class App(QMainWindow):
     def __init__(self):
         super().__init__()
         # 最外层布局
-        AppRoot.root = self
+        app_root.root = self
 
         self.outermost_layout = QVBoxLayout()
 
@@ -28,6 +27,9 @@ class App(QMainWindow):
         self.init_ui()
         self.log_info_ui()
         self.log_record_start()
+        self.key_watch_start()
+
+        self.meta_hotkey = False
 
     def init_ui(self):
         # 设置主窗口的标题和初始大小
@@ -75,15 +77,38 @@ class App(QMainWindow):
         self.outermost_layout.addLayout(log_layout)
 
     def log_record_start(self):
-        AppRoot.ui_log = LogThread()
-        AppRoot.ui_log.log_signal.connect(self.log_editbox.append_color_info)
-        AppRoot.ui_log.start()
-        AppRoot.ui_log.success('日志线程已就绪...')
+        app_root.ui_log = LogThread()
+        app_root.ui_log.log_signal.connect(self.log_editbox.append_color_info)
+        app_root.ui_log.start()
+        app_root.ui_log.success('日志线程已就绪...')
+
+    def key_watch_start(self):
+        app_root.key_watch = KeyWatchThread()
+        app_root.key_watch.press_signal.connect(self.press_event)
+        app_root.key_watch.release_signal.connect(self.release_event)
+        app_root.key_watch.start()
+        app_root.ui_log.success('键盘监听线程已启动...')
+
+    def press_event(self, key):
+        if key.key == keyboard.Key.cmd:
+            self.meta_hotkey = True
+        elif isinstance(key.key, keyboard.KeyCode) and key.key.char == 'z' and self.meta_hotkey:
+            self.normal_window()
+
+    def release_event(self, key):
+        if key.key == keyboard.Key.cmd:
+            self.meta_hotkey = False
 
     def closeEvent(self, event):
-        if AppRoot.ui_log.isRunning():
-            AppRoot.ui_log.terminate()
-            AppRoot.ui_log.wait()
+        if app_root.ui_log.isRunning():
+            app_root.ui_log.terminate()
+            app_root.ui_log.wait()
+
+    def mini_window(self):
+        self.showMinimized()
+
+    def normal_window(self):
+        self.showNormal()
 
 
 if __name__ == '__main__':

@@ -1,17 +1,43 @@
-from common.tools import Singleton
+from common.tools import Singleton, log
 
 
-class AppRoot:
+class AppRoot(Singleton):
     """
     app 根控件
     """
 
-    # app根
-    root = None
-    # 会话框
-    dialog = None
-    # 日志输出框
-    ui_log = None
+    def __init__(self):
+        # app根
+        self.root = None
+        # 会话框
+        self.__dialog = None
+        # 日志输出框
+        self.__ui_log = None
+        # 键盘监控
+        self.__key_watch = None
+
+    @property
+    def ui_log(self):
+        if self.__ui_log is None:
+            return log
+        return self.__ui_log
+
+    @ui_log.setter
+    def ui_log(self, value):
+        self.__ui_log = value
+
+    @property
+    def dialog(self):
+        return self.__dialog
+
+    @dialog.setter
+    def dialog(self, value):
+        if value is None:
+            self.__dialog = value
+            return
+        if self.__dialog is not None:
+            raise
+        self.__dialog = value
 
 
 class FuncControl(Singleton):
@@ -52,4 +78,5 @@ class FuncControl(Singleton):
         self.run_task = None
 
 
+app_root = AppRoot()
 control_func = FuncControl()

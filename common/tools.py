@@ -32,8 +32,8 @@ class WatchTool:
     def __init__(self, monitor=False):
         self.__events = []
 
-        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.mouse_listener = None
+        self.keyboard_listener = None
 
         # 是否监听鼠标点击事件
         self.monitor: bool = monitor
@@ -45,6 +45,9 @@ class WatchTool:
     def events(self):
         return self.__events
         # return json.dumps(self.__events)
+
+    def events_clear(self):
+        self.__events = []
 
     @property
     def is_listening(self):
@@ -172,6 +175,8 @@ class WatchTool:
         self.keyboard_listener.stop()
 
     def start(self):
+        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
         log.info('按下 ⬇️ 键开始录制')
         self.keyboard_listener.start()
         self.keyboard_listener.join()
@@ -299,12 +304,12 @@ class JsonFile(File):
         super().__init__(path)
 
     def create_file(self):
-        with open(self.path, 'w') as f:
+        with open(self.path, 'w', encoding='utf-8') as f:
             json.dump({}, f)
 
     def read(self) -> dict:
         self.exists()
-        with open(self.path, "r") as f:
+        with open(self.path, "r", encoding='utf-8') as f:
             return json.load(f)
 
     def write(self, data):
@@ -367,7 +372,7 @@ class LogTool:
             backtrace=True,  # 记录堆栈跟踪
             diagnose=True,  # 记录异常诊断信息
         )
-        self.logger.add(sys.stdout, level=self.log_level, backtrace=True, format=color_format)
+        # self.logger.add(sys.stdout, level=self.log_level, backtrace=True, format=color_format)
         self.logger.add(self.capture_msg, format=color_format)
 
     @staticmethod
@@ -379,6 +384,7 @@ class LogTool:
 
     def msg_struct(self, level: str, msg: str):
         prefix = self.prefix_info()
+        msg = msg.replace('{', '【').replace('}', '】')
         log_method = getattr(self.logger, level.lower())
         log_method(msg, prefix=prefix)
         return self.last_info
@@ -412,4 +418,5 @@ watch = WatchTool()
 atexit.register(watch.stop_record_video)
 
 if __name__ == '__main__':
-    print(log.info(msg="Hello World"))
+    watch.start()
+    watch.start()

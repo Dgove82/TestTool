@@ -1,15 +1,10 @@
-from src.utils.model import Function
-from common.tools import log
-from src.control.center import ControlCenter
-
+from src.frontend.ui import QApplication, App
+import sys
 
 
 if __name__ == '__main__':
-    pass
-    # db = get_db()
-    # func = Function(func='set_value')
-    # func.depict_func = '设置值'
-    # db.add(func)
-    # db.commit()
-    # log.info('hello')
+    app = QApplication(sys.argv)
+    ex = App()
+    ex.show()
+    sys.exit(app.exec_())
 
