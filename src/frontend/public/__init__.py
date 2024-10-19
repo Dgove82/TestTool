@@ -11,10 +11,10 @@ class AppRoot(Singleton):
         self.root = None
         # 会话框
         self.__dialog = None
-        # 日志输出框
+        # 日志输出框 线程
         self.__ui_log = None
-        # 键盘监控
-        self.__key_watch = None
+        # 键鼠监控 线程
+        self.key_watch = None
 
     @property
     def ui_log(self):

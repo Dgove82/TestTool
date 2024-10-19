@@ -177,7 +177,6 @@ def case():\n"""
         return watch.events
 
 
-
 if __name__ == '__main__':
     ControlCenter.func_search('值')
     ControlCenter.step_click(1)

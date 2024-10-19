@@ -12,7 +12,7 @@ class FuncAction(Singleton):
         self.control = control_func
 
     def load_action(self):
-        self.control.search_result_list.itemDoubleClicked.connect(lambda: self.action_step_add())
+        self.control.search_result_list.itemDoubleClicked.connect(self.action_step_add)
         self.control.search_result_list.customContextMenuRequested.connect(self.action_open_result_menu)
         self.control.process_list.customContextMenuRequested.connect(self.action_open_process_menu)
         self.control.reset_btn.clicked.connect(self.action_process_reset)
@@ -125,7 +125,8 @@ class FuncAction(Singleton):
         添加录制方法
         """
         self.app.dialog = DefineParamDialog(self.app.root)
-        self.app.dialog.watch_thread.event_signal.connect(self.action_define_step_insert)
+        # self.app.dialog.watch_thread.event_signal.connect(self.action_define_step_insert)
+        self.app.key_watch.event_signal.connect(self.action_define_step_insert)
         self.app.dialog.exec_()
 
     def action_process_exec(self):

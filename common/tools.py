@@ -30,16 +30,20 @@ class Singleton:
 
 class WatchTool:
     def __init__(self, monitor=False):
-        self.__events = []
-
         self.mouse_listener = None
         self.keyboard_listener = None
+
+        self.mouse_controller = mouse.Controller()
+        self.keyboard_controller = keyboard.Controller()
 
         # 是否监听鼠标点击事件
         self.monitor: bool = monitor
 
         # 视频录制进程
         self.ffmpeg = None
+
+        # 事件录制
+        self.__events = []
 
     @property
     def events(self):
@@ -177,7 +181,7 @@ class WatchTool:
     def start(self):
         self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
         self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        log.info('按下 ⬇️ 键开始录制')
+        log.info('按下 ⬇ 键开始录制')
         self.keyboard_listener.start()
         self.keyboard_listener.join()
         self.mouse_listener.join()
@@ -188,8 +192,6 @@ class WatchTool:
 
         log.info('事件开始读取')
 
-        mouse_controller = mouse.Controller()
-        keyboard_controller = keyboard.Controller()
         last_time = None
 
         for e in events:
@@ -205,13 +207,13 @@ class WatchTool:
             if event_type == 'click':
                 button = getattr(mouse.Button, event[1])
                 if event[2]:  # 如果是按下
-                    mouse_controller.press(button)
+                    self.mouse_controller.press(button)
                 else:  # 如果是释放
-                    mouse_controller.release(button)
+                    self.mouse_controller.release(button)
             elif event_type == 'move':
-                mouse_controller.position = (event[1], event[2])
+                self.mouse_controller.position = (event[1], event[2])
             elif event_type == 'scroll':
-                mouse_controller.scroll(event[3], event[4])
+                self.mouse_controller.scroll(event[3], event[4])
             elif event_type == 'press':
                 key = event[1].replace('\'', '')
                 try:
@@ -219,7 +221,7 @@ class WatchTool:
                     key_attr = getattr(keyboard.Key, sub_key)
                 except AttributeError:
                     key_attr = key
-                keyboard_controller.press(key_attr)
+                self.keyboard_controller.press(key_attr)
             elif event_type == 'release':
                 key = event[1].replace('\'', '')
                 try:
@@ -229,7 +231,7 @@ class WatchTool:
                 except AttributeError:
                     # 如果不是特殊按键，则直接使用字符串
                     key_attr = key
-                keyboard_controller.release(key_attr)
+                self.keyboard_controller.release(key_attr)
 
         log.success('录制事件读取结束')
 
@@ -372,7 +374,7 @@ class LogTool:
             backtrace=True,  # 记录堆栈跟踪
             diagnose=True,  # 记录异常诊断信息
         )
-        # self.logger.add(sys.stdout, level=self.log_level, backtrace=True, format=color_format)
+        self.logger.add(sys.stdout, level=self.log_level, backtrace=True, format=color_format)
         self.logger.add(self.capture_msg, format=color_format)
 
     @staticmethod
@@ -419,4 +421,4 @@ atexit.register(watch.stop_record_video)
 
 if __name__ == '__main__':
     watch.start()
-    watch.start()
+    watch.replay_events(watch.events)

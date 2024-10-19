@@ -22,3 +22,5 @@ rubicon-objc==0.4.6
 six==1.16.0
 SQLAlchemy==2.0.35
 typing_extensions==4.7.1
+
+uiautomation~=2.0.20

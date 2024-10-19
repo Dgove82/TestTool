@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QTabWidget,
                              QWidget, QLabel, QApplication)
 from PyQt5.QtCore import Qt
-
+from common.tools import log
 from src.frontend.component.tab_func import FuncTab
 from src.frontend.component.tab_temp import TempTab
 from src.frontend.component.control import LogThread, LogEditBox, KeyWatchThread
@@ -77,17 +77,24 @@ class App(QMainWindow):
         self.outermost_layout.addLayout(log_layout)
 
     def log_record_start(self):
+        """
+        启动日志线程
+        """
         app_root.ui_log = LogThread()
         app_root.ui_log.log_signal.connect(self.log_editbox.append_color_info)
         app_root.ui_log.start()
         app_root.ui_log.success('日志线程已就绪...')
 
     def key_watch_start(self):
+        """
+        启动键盘监听线程
+        """
         app_root.key_watch = KeyWatchThread()
         app_root.key_watch.press_signal.connect(self.press_event)
         app_root.key_watch.release_signal.connect(self.release_event)
-        app_root.key_watch.start()
-        app_root.ui_log.success('键盘监听线程已启动...')
+        while app_root.key_watch.sig != 1:
+            app_root.key_watch.start()
+        app_root.ui_log.success('键鼠监听线程已启动...')
 
     def press_event(self, key):
         if key.key == keyboard.Key.cmd:
@@ -102,7 +109,14 @@ class App(QMainWindow):
     def closeEvent(self, event):
         if app_root.ui_log.isRunning():
             app_root.ui_log.terminate()
+            log.info('日志线程已关闭.')
             app_root.ui_log.wait()
+
+        if app_root.key_watch.isRunning():
+            app_root.key_watch.key_listener.stop()
+            app_root.key_watch.mouse_listener.stop()
+            app_root.ui_log.wait()
+            app_root.ui_log.info('键鼠监听线程已关闭.')
 
     def mini_window(self):
         self.showMinimized()

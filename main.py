@@ -1,5 +1,6 @@
 from src.frontend.ui import QApplication, App
 import sys
+import os
 
 
 if __name__ == '__main__':
