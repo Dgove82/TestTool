@@ -30,10 +30,11 @@ class Singleton:
 
 class WatchTool:
     def __init__(self, monitor=False):
-        self.__events = []
+        self.mouse_listener = None
+        self.keyboard_listener = None
 
-        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.mouse_controller = mouse.Controller()
+        self.keyboard_controller = keyboard.Controller()
 
         # 是否监听鼠标点击事件
         self.monitor: bool = monitor
@@ -41,10 +42,16 @@ class WatchTool:
         # 视频录制进程
         self.ffmpeg = None
 
+        # 事件录制
+        self.__events = []
+
     @property
     def events(self):
         return self.__events
         # return json.dumps(self.__events)
+
+    def events_clear(self):
+        self.__events = []
 
     @property
     def is_listening(self):
@@ -172,7 +179,9 @@ class WatchTool:
         self.keyboard_listener.stop()
 
     def start(self):
-        log.info('按下 ⬇️ 键开始录制')
+        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        log.info('按下 ⬇ 键开始录制')
         self.keyboard_listener.start()
         self.keyboard_listener.join()
         self.mouse_listener.join()
@@ -183,8 +192,6 @@ class WatchTool:
 
         log.info('事件开始读取')
 
-        mouse_controller = mouse.Controller()
-        keyboard_controller = keyboard.Controller()
         last_time = None
 
         for e in events:
@@ -200,13 +207,13 @@ class WatchTool:
             if event_type == 'click':
                 button = getattr(mouse.Button, event[1])
                 if event[2]:  # 如果是按下
-                    mouse_controller.press(button)
+                    self.mouse_controller.press(button)
                 else:  # 如果是释放
-                    mouse_controller.release(button)
+                    self.mouse_controller.release(button)
             elif event_type == 'move':
-                mouse_controller.position = (event[1], event[2])
+                self.mouse_controller.position = (event[1], event[2])
             elif event_type == 'scroll':
-                mouse_controller.scroll(event[3], event[4])
+                self.mouse_controller.scroll(event[3], event[4])
             elif event_type == 'press':
                 key = event[1].replace('\'', '')
                 try:
@@ -214,7 +221,7 @@ class WatchTool:
                     key_attr = getattr(keyboard.Key, sub_key)
                 except AttributeError:
                     key_attr = key
-                keyboard_controller.press(key_attr)
+                self.keyboard_controller.press(key_attr)
             elif event_type == 'release':
                 key = event[1].replace('\'', '')
                 try:
@@ -224,7 +231,7 @@ class WatchTool:
                 except AttributeError:
                     # 如果不是特殊按键，则直接使用字符串
                     key_attr = key
-                keyboard_controller.release(key_attr)
+                self.keyboard_controller.release(key_attr)
 
         log.success('录制事件读取结束')
 
@@ -299,12 +306,12 @@ class JsonFile(File):
         super().__init__(path)
 
     def create_file(self):
-        with open(self.path, 'w') as f:
+        with open(self.path, 'w', encoding='utf-8') as f:
             json.dump({}, f)
 
     def read(self) -> dict:
         self.exists()
-        with open(self.path, "r") as f:
+        with open(self.path, "r", encoding='utf-8') as f:
             return json.load(f)
 
     def write(self, data):
@@ -379,6 +386,7 @@ class LogTool:
 
     def msg_struct(self, level: str, msg: str):
         prefix = self.prefix_info()
+        msg = msg.replace('{', '【').replace('}', '】')
         log_method = getattr(self.logger, level.lower())
         log_method(msg, prefix=prefix)
         return self.last_info
@@ -412,4 +420,5 @@ watch = WatchTool()
 atexit.register(watch.stop_record_video)
 
 if __name__ == '__main__':
-    print(log.info(msg="Hello World"))
+    watch.start()
+    watch.replay_events(watch.events)

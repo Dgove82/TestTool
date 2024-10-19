@@ -34,7 +34,7 @@ class FuncParse:
         self.file = file
 
     def load_file(self) -> str:
-        with open(self.file, 'r') as f:
+        with open(self.file, 'r', encoding='utf-8') as f:
             return f.read()
 
     def regex(self) -> dict:
