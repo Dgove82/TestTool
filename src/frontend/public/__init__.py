@@ -15,6 +15,9 @@ class AppRoot(Singleton):
         self.__ui_log = None
         # 键鼠监控 线程
         self.key_watch = None
+        # 键鼠子任务添加标识1
+        self.key_watch_task_insert = False
+        self.key_watch_task_start = False
 
     @property
     def ui_log(self):

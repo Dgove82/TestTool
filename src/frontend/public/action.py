@@ -1,3 +1,5 @@
+import traceback
+
 import settings
 from src.frontend.public import control_func, app_root
 from common.tools import Singleton
@@ -111,14 +113,17 @@ class FuncAction(Singleton):
             self.control.search_result_list.addItem(line)
 
     def action_define_step_insert(self, events):
-        self.app.root.normal_window()
-        self.app.dialog.running = False
-        data = self.app.dialog.make_data()
-        pos = int(data.get('self_process_index')) - 1
-        name = data.get('name') if data.get('name') is not None else '自定义方法'
-        ControlCenter.define_step_insert(events, pos, name)
-        self.control.process_list.insertItem(pos, name)
-        self.app.dialog.close_dialog()
+        if self.app.dialog is not None:
+            self.app.dialog.running = False
+            data = self.app.dialog.make_data()
+            pos = int(data.get('self_process_index')) - 1
+            name = data.get('name') if data.get('name') is not None else '自定义方法'
+            ControlCenter.define_step_insert(events, pos, name)
+            self.control.process_list.insertItem(pos, name)
+            self.app.root.normal_window()
+            self.app.dialog.close_dialog()
+        else:
+            raise
 
     def action_add_record(self):
         """
@@ -126,7 +131,9 @@ class FuncAction(Singleton):
         """
         self.app.dialog = DefineParamDialog(self.app.root)
         # self.app.dialog.watch_thread.event_signal.connect(self.action_define_step_insert)
-        self.app.key_watch.event_signal.connect(self.action_define_step_insert)
+        if self.app.key_watch_task_insert is False:
+            self.app.key_watch.event_signal.connect(self.action_define_step_insert)
+            self.app.key_watch_task_insert = True
         self.app.dialog.exec_()
 
     def action_process_exec(self):
@@ -157,7 +164,11 @@ class FuncAction(Singleton):
         ControlCenter.steps_read()
         self.control.process_list.clear()
         for f in ControlCenter.steps:
-            self.control.process_list.addItem(f'{f.get("depict_func", None)}')
+            f_type = f.get('type', None)
+            if f_type == 'exist':
+                self.control.process_list.addItem(f'{f.get("depict_func", None)}')
+            elif f_type == 'define':
+                self.control.process_list.addItem(f'{f.get("name", None)}')
         self.app.ui_log.success(f'已从<{settings.PROCESS_PATH}>读取流程')
 
     def action_save_process(self):

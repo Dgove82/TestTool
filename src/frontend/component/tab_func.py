@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from src.frontend.component.control import CommonButton, TaskThread
+from src.frontend.component.control import CommonButton, TaskThread, CapsLockFilter
 from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 

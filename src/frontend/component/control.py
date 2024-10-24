@@ -2,7 +2,7 @@ import json
 import time
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QTextCursor, QColor, QTextCharFormat
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject, QEvent
 
 import settings
 from common.tools import LogTool, watch
@@ -35,6 +35,10 @@ class BaseDialog(QDialog):
             top = parent.top() + (parent.height() - child.height()) / 2
             left = parent.left() + (parent.width() - child.width()) / 2
             self.move(left, top)
+
+    def close_dialog(self):
+        app_root.dialog = None
+        self.accept()
 
     def closeEvent(self, event):
         app_root.dialog = None
@@ -158,10 +162,6 @@ class FuncParamDialog(BaseDialog):
         res.update({'params': json.dumps(temp_res)})
         return res
 
-    def close_dialog(self):
-        app_root.dialog = None
-        self.accept()
-
 
 class DefineParamDialog(BaseDialog):
     def __init__(self, parent):
@@ -225,11 +225,12 @@ class DefineParamDialog(BaseDialog):
         self.watch_thread.start_run_signal.connect(self.start_record)
 
     def action_recoding(self):
+        app_root.ui_log.info('????')
         watch.events_clear()
         self.running = True
         # self.watch_thread.start()
         self.watch_thread.update_status_signal.emit(10)
-        self.update_tip('按下 ⬇ 键开始录制')
+        self.update_tip('按下<⬇>键开录|<esc>结束')
         self.start_btn.setEnabled(False)
         for obj in self.form_data.values():
             obj.setEnabled(False)
@@ -248,17 +249,20 @@ class DefineParamDialog(BaseDialog):
     def update_tip(self, msg):
         self.start_btn.setText(msg)
 
-    def close_dialog(self):
-        app_root.dialog = None
-        self.accept()
+    def end_record(self):
+        self.running = False
+        self.start_btn.setEnabled(True)
+        self.form_data['self_process_index'].setText(f"{int(self.form_data['self_process_index'].text()) + 1}")
+        for obj in self.form_data.values():
+            obj.setEnabled(True)
+        self.update_tip('继续添加')
 
     def closeEvent(self, event):
         if self.running:
-            event.ignore()
-            app_root.dialog = None
-            self.update_tip('录制中，无法关闭，请通过按<esc>退出')
-        else:
-            super().closeEvent(event)
+            self.watch_thread.update_status_signal.emit(1)
+            app_root.ui_log.info('已取消录制')
+        self.watch_thread.start_run_signal.disconnect(self.start_record)
+        super().closeEvent(event)
 
 
 class CommonButton(QPushButton):
@@ -326,7 +330,6 @@ class KeyWatchThread(QThread):
             if key == keyboard.Key.esc:
                 self.update_status(1)
                 app_root.ui_log.info('录制结束')
-                print(self._events)
                 self.event_signal.emit(self._events)
             else:
                 self.append_event(['press', str(key)])

@@ -86,11 +86,14 @@ class ControlCenter:
         :return:
         """
         if pos is None or pos > len(ControlCenter.search_record):
-            func: Function = ControlCenter.steps.pop()
+            func = ControlCenter.steps.pop()
         else:
-            func: Function = ControlCenter.steps.pop(pos)
-
-        log.info(f'<{func.get("depict_func", None)}>方法已被移除')
+            func = ControlCenter.steps.pop(pos)
+        f_type = func.get('type', None)
+        if f_type == 'exist':
+            log.info(f'<{func.get("depict_func", None)}>方法已被移除')
+        elif f_type == 'define':
+            log.info(f'<{func.get("name", None)}>方法已被移除')
 
     @staticmethod
     def step_reset():

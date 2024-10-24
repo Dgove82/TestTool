@@ -1,0 +1,54 @@
+<project>
+    <script/>
+    <actions/>
+    <description/>
+    <keepDependencies>false</keepDependencies>
+    <properties/>
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@5.4.1">
+        <configVersion>2</configVersion>
+        <userRemoteConfigs>
+            <hudson.plugins.git.UserRemoteConfig>
+                <url>http://10.211.55.19/dgove/auto_work.git</url>
+                <credentialsId>e24f7608-2f6e-46c4-b7b0-a14f6d49b9e5</credentialsId>
+            </hudson.plugins.git.UserRemoteConfig>
+        </userRemoteConfigs>
+        <branches>
+            <hudson.plugins.git.BranchSpec>
+                <name>*/main</name>
+            </hudson.plugins.git.BranchSpec>
+        </branches>
+        <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+        <submoduleCfg class="empty-list"/>
+        <extensions/>
+    </scm>
+    <assignedNode>mac</assignedNode>
+    <canRoam>false</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+        <hudson.tasks.Shell>
+            <command>/Users/dgove/程序/Python\ Project/Python\ Venv/auto_work/bin/python3 ${JENKINS_HOME}/main.py; pwd</command>
+            <configuredLocalRules/>
+        </hudson.tasks.Shell>
+    </builders>
+    <publishers>
+        <ru.yandex.qatools.allure.jenkins.AllureReportPublisher plugin="allure-jenkins-plugin@2.31.1">
+            <configPath/>
+            <jdk/>
+            <properties/>
+            <results>
+                <ru.yandex.qatools.allure.jenkins.config.ResultsConfig>
+                    <path>results</path>
+                </ru.yandex.qatools.allure.jenkins.config.ResultsConfig>
+            </results>
+            <reportBuildPolicy>ALWAYS</reportBuildPolicy>
+            <includeProperties>false</includeProperties>
+            <disabled>false</disabled>
+            <report>allure-report</report>
+        </ru.yandex.qatools.allure.jenkins.AllureReportPublisher>
+    </publishers>
+    <buildWrappers/>
+</project>
