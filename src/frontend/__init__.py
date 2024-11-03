@@ -1,13 +1,12 @@
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QTabWidget,
-                             QWidget, QLabel, QApplication)
+                             QWidget, QLabel, QApplication, QHBoxLayout)
 from PyQt5.QtCore import Qt
-from common.tools import log
-from src.frontend.component.tab_func import FuncTab
-from src.frontend.component.tab_temp import TempTab
-from src.frontend.component.control import LogThread, LogEditBox, KeyWatchThread
+from src.frontend.components.tabs import FuncTab, TempTab
+from src.frontend.components import LogThread, LogEditBox, KeyWatchThread, CommonButton, ConfDialog, TitleLabel
 from src.frontend.public import app_root
 from pynput import keyboard
+import settings
 
 
 class App(QMainWindow):
@@ -25,9 +24,6 @@ class App(QMainWindow):
         self.log_editbox = LogEditBox()
 
         self.init_ui()
-        self.log_info_ui()
-        self.log_record_start()
-        self.key_watch_start()
 
         self.meta_hotkey = False
 
@@ -43,25 +39,63 @@ class App(QMainWindow):
         # 设置垂直布局
         central_widget.setLayout(self.outermost_layout)
 
+        self.header_ui()
+        self.tabs_ui()
+        self.log_info_ui()
+        self.log_record_start()
+        self.key_watch_start()
+
+        self.load_actions()
+
+    def load_actions(self):
+        app_root.conf_btn.clicked.connect(self.action_conf_set)
+
+    def header_ui(self):
+        # 顶部
+        top_layout = QHBoxLayout()
+        app_root.conf_btn = CommonButton("⚙")
+        app_root.conf_btn.setStyleSheet("""
+                    QPushButton{
+                        background-color: transparent;
+                        font: bold 50pt;
+                        color: #839192;
+                    }
+                """)
+
+        top_layout.addWidget(app_root.conf_btn)
+        top_layout.setStretchFactor(app_root.conf_btn, 1)
+
         # 创建并添加大标题
         title_label = QLabel('测试小工具', self)
-        title_label.setStyleSheet("font-size: 30pt")
+        title_label.setStyleSheet("""
+                    QLabel{
+                        font: bold 30pt;
+                        letter-spacing: 10px;
+                    }
+                """)
         title_label.setAlignment(Qt.AlignCenter)
+        top_layout.addWidget(title_label)
+        top_layout.setStretchFactor(title_label, 10)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+        self.outermost_layout.addLayout(top_layout)
 
-        self.outermost_layout.addWidget(title_label)
+        self.outermost_layout.setStretchFactor(top_layout, 1)
 
+    def tabs_ui(self):
         # 创建分页
         self.outermost_layout.addWidget(self.tab_widget)
+        self.outermost_layout.setStretchFactor(self.tab_widget, 20)
         self.tab_widget.setStyleSheet("""
-            QTabBar::tab:selected {
-                background-color: #4d85ff;
-                color: white;
-            }
-            QTabBar::tab:!selected {
-                background-color: lightgrey;
-                color: black;
-            }
-        """)
+                    QTabBar::tab:selected {
+                        background-color: #4d85ff;
+                        color: white;
+                    }
+                    QTabBar::tab:!selected {
+                        background-color: lightgrey;
+                        color: black;
+                    }
+                """)
 
         self.tab_widget.addTab(self.tab_sub, '方法执行')
 
@@ -69,12 +103,13 @@ class App(QMainWindow):
 
     def log_info_ui(self):
         log_layout = QVBoxLayout()
-        log_label = QLabel()
-        log_label.setText('运行日志:')
+        log_label = TitleLabel('运行日志')
         self.log_editbox.setReadOnly(True)
         log_layout.addWidget(log_label)
         log_layout.addWidget(self.log_editbox)
+        log_layout.setSpacing(0)
         self.outermost_layout.addLayout(log_layout)
+        self.outermost_layout.setStretchFactor(log_layout, 10)
 
     def log_record_start(self):
         """
@@ -96,6 +131,14 @@ class App(QMainWindow):
             app_root.key_watch.start()
         app_root.ui_log.success('键鼠监听线程已启动...')
 
+    def action_conf_set(self):
+        """
+        程序配置设置
+        """
+        app_root.dialog = ConfDialog(parent=self)
+
+        app_root.dialog.exec_()
+
     def press_event(self, key):
         if key.key == keyboard.Key.cmd:
             self.meta_hotkey = True
@@ -109,7 +152,7 @@ class App(QMainWindow):
     def closeEvent(self, event):
         if app_root.ui_log.isRunning():
             app_root.ui_log.terminate()
-            log.info('日志线程已关闭.')
+            settings.log.info('日志线程已关闭.')
             app_root.ui_log.wait()
 
         if app_root.key_watch.isRunning():

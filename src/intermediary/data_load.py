@@ -1,8 +1,8 @@
 import json
 import re
 import settings
-from src.utils.model import SQLserver, Function
-from common.tools import JsonFile, log
+from settings import Function, Confs
+from src.intermediary.center import SQLserver
 
 
 class FuncModel:
@@ -53,7 +53,7 @@ class FuncParse:
         server.delete_model(Function)
 
         for res_dict in self.regex():
-            log.info(f'方法{res_dict.items()}')
+            settings.log.info(f'方法{res_dict.items()}')
             func = Function()
             func.func = res_dict.get('func', None)
             func.params = json.dumps(self.parse_params(res_dict.get('params', None)), ensure_ascii=False)
@@ -65,24 +65,6 @@ class FuncParse:
             res.append(func)
 
         server.insert(res)
-
-    def hanlder_test(self):
-        """
-        json数据调试
-        :return:
-        """
-        res = []
-
-        for res_dict in self.regex():
-            func = FuncModel()
-            func.func = res_dict.get('func', None)
-            func.params = self.parse_params(res_dict.get('params', None))
-            func.depict_func, func.depict_params, func.depict_return = self.parse_depict(res_dict.get('depict', None))
-
-            func.sysout()
-            res.append(func.wrap_dict())
-
-        JsonFile(settings.FILES_PATH.joinpath('temps.json')).write(res)
 
     @staticmethod
     def parse_params(temp_param) -> dict:
@@ -140,6 +122,41 @@ class FuncParse:
         return depict_func, depict_params, depict_return
 
 
+class ConfParse:
+
+    @staticmethod
+    def init_conf():
+        SQLserver().delete_model(Confs)
+        ConfParse.init_app_for_conf()
+
+    @staticmethod
+    def init_app_for_conf():
+        configs = []
+        conf_log = Confs(keys='LOG_DIR', values=str(settings.Files.LOG_DIR), depict_key='日志存放目录', conf_type=0)
+        configs.append(conf_log)
+
+        conf_image = Confs(keys='IMAGE_DIR', values=str(settings.Files.IMAGE_DIR), depict_key='图片存放目录',
+                           conf_type=0)
+        configs.append(conf_image)
+
+        conf_video = Confs(keys='VIDEO_DIR', values=str(settings.Files.VIDEO_DIR), depict_key='视频存放目录',
+                           conf_type=0)
+        configs.append(conf_video)
+
+        conf_process = Confs(keys='PROCESS_PATH', values=str(settings.Files.PROCESS_PATH), depict_key='默认流程文件',
+                             conf_type=0)
+        configs.append(conf_process)
+
+        conf_case = Confs(keys='CASE_PATH', values=str(settings.Files.CASE_PATH), depict_key='默认脚本文件', conf_type=0)
+        configs.append(conf_case)
+
+        SQLserver().insert(configs)
+
+    def init_definesight_for_conf(self):
+        pass
+
+
 if __name__ == '__main__':
     # log.info(f'{"a"}?')
-    FuncParse(settings.LIB_ELEMENT).handler()
+    FuncParse(settings.Library.LIB_ELEMENT).handler()
+    ConfParse().init_conf()

@@ -1,4 +1,5 @@
-from common.tools import Singleton, log
+from common.tools import Singleton
+import settings
 
 
 class AppRoot(Singleton):
@@ -9,6 +10,8 @@ class AppRoot(Singleton):
     def __init__(self):
         # app根
         self.root = None
+        # 系统参数配置按钮
+        self.conf_btn = None
         # 会话框
         self.__dialog = None
         # 日志输出框 线程
@@ -22,7 +25,7 @@ class AppRoot(Singleton):
     @property
     def ui_log(self):
         if self.__ui_log is None:
-            return log
+            return settings.log
         return self.__ui_log
 
     @ui_log.setter
