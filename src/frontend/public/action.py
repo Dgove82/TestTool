@@ -1,8 +1,11 @@
+import json
+import traceback
+
 import settings
 from src.frontend.public import control_func, app_root
 from common.tools import Singleton
-from src.control.center import ControlCenter
-from src.frontend.component.control import ExecDialog, FuncParamDialog, DefineParamDialog
+from src.intermediary.center import ControlCenter, handler
+from src.frontend.components import ExecDialog, FuncParamDialog, DefineParamDialog, ConfDialog, EditParamDialog
 from PyQt5.QtWidgets import *
 
 
@@ -13,6 +16,7 @@ class FuncAction(Singleton):
 
     def load_action(self):
         self.control.search_result_list.itemDoubleClicked.connect(self.action_step_add)
+        self.control.process_list.itemDoubleClicked.connect(self.action_step_edit)
         self.control.search_result_list.customContextMenuRequested.connect(self.action_open_result_menu)
         self.control.process_list.customContextMenuRequested.connect(self.action_open_process_menu)
         self.control.reset_btn.clicked.connect(self.action_process_reset)
@@ -20,8 +24,6 @@ class FuncAction(Singleton):
         self.control.save_process_btn.clicked.connect(self.action_save_process)
         self.control.read_process_btn.clicked.connect(self.action_read_process)
         self.control.generate_py_btn.clicked.connect(self.action_generate_py)
-
-        self.control.conf_btn.clicked.connect(self.action_conf_set)
         self.control.search_btn.clicked.connect(self.action_search)
         self.control.add_record_btn.clicked.connect(self.action_add_record)
 
@@ -29,11 +31,12 @@ class FuncAction(Singleton):
 
     def action_step_add(self):
         index = self.control.search_result_list.currentRow()
-        ControlCenter.step_click(index)
+        handler.step_click(index)
 
         self.app.dialog = FuncParamDialog(parent=self.app.root)
 
         self.app.dialog.confirm.clicked.connect(self.action_step_insert)
+        self.app.dialog.cancel.clicked.connect(self.app.dialog.close_dialog)
 
         self.app.dialog.exec_()
 
@@ -46,8 +49,9 @@ class FuncAction(Singleton):
 
             pos = int(form_data.pop('self_process_index')) - 1
 
-            ControlCenter.func_step_insert(pos, form_data.get('params', '{}'))
-            self.control.process_list.insertItem(pos, f'{ControlCenter.steps[pos].get("depict_func")}')
+            handler.func_step_insert(pos, form_data.get('params', '{}'))
+            # self.control.process_list.insertItem(pos, f'{ControlCenter.steps[pos].get("depict_func")}')
+            self.action_flash_process()
             self.app.dialog.close_dialog()
 
         else:
@@ -75,6 +79,9 @@ class FuncAction(Singleton):
         del_action = QAction('删除: 将步骤从流程中删除')
         self.control.right_menu.addAction(del_action)
         del_action.triggered.connect(lambda: self.handle_action('step_del'))
+        edit_action = QAction('编辑: 重新编辑参数')
+        self.control.right_menu.addAction(edit_action)
+        edit_action.triggered.connect(lambda: self.handle_action('step_edit'))
 
         self.control.right_menu.setEnabled(selected_index != -1)
         self.control.right_menu.exec_(control_func.process_list.mapToGlobal(position))
@@ -88,15 +95,41 @@ class FuncAction(Singleton):
             self.control.right_menu.close()
         elif action == 'step_del':
             index = self.control.process_list.currentRow()
-            ControlCenter.step_del(index)
-            self.control.process_list.takeItem(index)
+            handler.step_del(index)
+            # self.control.process_list.takeItem(index)
+            self.action_flash_process()
+        elif action == 'step_edit':
+            self.action_step_edit()
+            self.control.right_menu.close()
 
-    def action_conf_set(self):
-        """
-        程序配置设置
-        """
-        self.app.root.mini_window()
-        pass
+    def action_step_edit(self):
+        index = self.control.process_list.currentRow()
+        ControlCenter.checked = index
+
+        self.app.dialog = EditParamDialog(parent=self.app.root)
+
+        self.app.dialog.confirm.clicked.connect(self.action_edit_step)
+        self.app.dialog.cancel.clicked.connect(self.app.dialog.close_dialog)
+
+        self.app.dialog.exec_()
+
+    def action_edit_step(self):
+        if self.app.dialog:
+            form_data = self.app.dialog.make_data()
+            func = ControlCenter.steps[ControlCenter.checked]
+            temp = {}
+            for key, value in form_data.items():
+                if func.get('type') == 'exist':
+                    temp.update({key: value})
+                else:
+                    self.app.ui_log.info(f'录制方法名<{func.get("name")}>更新为<{value}>')
+                    func[key] = value
+                    self.control.process_list.currentItem().setText(f'{ControlCenter.checked+1}.{value}')
+
+            if func.get('type') == 'exist':
+                func["params"] = json.dumps(temp)
+                self.app.ui_log.info(f'<{func.get("depict_func")}>参数更新成功')
+            self.app.dialog.close_dialog()
 
     def action_search(self):
         """
@@ -104,21 +137,36 @@ class FuncAction(Singleton):
         """
         self.control.search_result_list.clear()
         search_key = self.control.search_line.text()
-        ControlCenter.func_search(search_key)
+        handler.func_search(search_key)
         app_root.ui_log.info(f'搜索到{len(ControlCenter.search_record)}个方法')
         for index, func in enumerate(ControlCenter.search_record):
             line = f'{index + 1}.{func.depict_func}'
             self.control.search_result_list.addItem(line)
 
+    def action_flash_process(self):
+        self.control.process_list.clear()
+        for index, func in enumerate(ControlCenter.steps):
+            if func.get('type') == 'exist':
+                line = f'{index + 1}.{func.get("depict_func", None)}'
+                self.control.process_list.addItem(line)
+            else:
+                line = f'{index + 1}.{func.get("name", None)}'
+                self.control.process_list.addItem(line)
+        ControlCenter.exec_step_end = len(ControlCenter.steps)
+
     def action_define_step_insert(self, events):
-        self.app.root.normal_window()
-        self.app.dialog.running = False
-        data = self.app.dialog.make_data()
-        pos = int(data.get('self_process_index')) - 1
-        name = data.get('name') if data.get('name') is not None else '自定义方法'
-        ControlCenter.define_step_insert(events, pos, name)
-        self.control.process_list.insertItem(pos, name)
-        self.app.dialog.close_dialog()
+        if self.app.dialog is not None:
+            self.app.dialog.running = False
+            data = self.app.dialog.make_data()
+            pos = int(data.get('self_process_index')) - 1
+            name = data.get('name') if data.get('name') is not None else '自定义方法'
+            handler.define_step_insert(events, pos, name)
+            # self.control.process_list.insertItem(pos, name)
+            self.action_flash_process()
+            self.app.root.normal_window()
+            self.app.dialog.close_dialog()
+        else:
+            raise
 
     def action_add_record(self):
         """
@@ -126,15 +174,12 @@ class FuncAction(Singleton):
         """
         self.app.dialog = DefineParamDialog(self.app.root)
         # self.app.dialog.watch_thread.event_signal.connect(self.action_define_step_insert)
-        self.app.key_watch.event_signal.connect(self.action_define_step_insert)
+        if self.app.key_watch_task_insert is False:
+            self.app.key_watch.event_signal.connect(self.action_define_step_insert)
+            self.app.key_watch_task_insert = True
         self.app.dialog.exec_()
 
     def action_process_exec(self):
-        self.app.ui_log.info('开始执行流程')
-        self.app.root.mini_window()
-        self.control.run_task.start()
-        self.control.run_task.finish_signal.connect(self.action_process_finish)
-
         self.app.dialog = ExecDialog(self.app.root)
         self.app.dialog.exec_()
 
@@ -143,7 +188,7 @@ class FuncAction(Singleton):
         self.app.dialog.info_label.setText('执行完毕')
 
     def action_process_reset(self):
-        ControlCenter.step_reset()
+        handler.step_reset()
         if self.control.process_list.count() > 0:
             self.app.ui_log.info('流程已重置')
             self.control.process_list.clear()
@@ -154,20 +199,24 @@ class FuncAction(Singleton):
         """
         读取流程,从自定义文件中读取
         """
-        ControlCenter.steps_read()
+        handler.steps_read()
         self.control.process_list.clear()
         for f in ControlCenter.steps:
-            self.control.process_list.addItem(f'{f.get("depict_func", None)}')
-        self.app.ui_log.success(f'已从<{settings.PROCESS_PATH}>读取流程')
+            f_type = f.get('type', None)
+            if f_type == 'exist':
+                self.control.process_list.addItem(f'{f.get("depict_func", None)}')
+            elif f_type == 'define':
+                self.control.process_list.addItem(f'{f.get("name", None)}')
+        self.app.ui_log.success(f'已从<{settings.Files.PROCESS_PATH}>读取流程')
 
     def action_save_process(self):
         """
         将留存储存到自定义文件中
         """
-        ControlCenter.steps_save()
+        handler.steps_save()
 
     def action_generate_py(self):
         """
         生成py代码
         """
-        ControlCenter.generate_py()
+        handler.generate_py()

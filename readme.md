@@ -8,6 +8,9 @@
     ├── events.log
     ├── process.json
     ├── case.py
+    ├── tool.db
+    ├── videos
+    │   └── xx.mp4
     ├── log
     │   └── 2001-1-1.log
     └── image
@@ -21,16 +24,23 @@
     2. 删除步骤: 选中存在步骤进行删除
     3. 重置: 清空流程
     4. 执行: 按照缓存步骤进行执行
+       1. 指定流程中的步骤片段执行
+       2. 指定执行次数
     5. 保存流程: 将执行流程配置保存出来
+    6. 读取流程:
+       1. 指定流程文件读取
 - [ ] 逆行生成流程py代码
     1. 根据流程生成py代码
+    1. 指定文件目录输出
+- [ ] 系统参数配置
+    1. 将settings.py/ conf.py配置录入至数据库中
+    2. 可指定修改
 
 ### 辅助功能
 
 - [ ] 操作监控
     1. 记录操作
     2. 方法回溯
-- [ ] CPU GPU RAM信息监控
 
 ## 数据
 
@@ -46,16 +56,6 @@
   | depict_func   | str      | 方法描述            | 设置值        |
   | depict_params | str      | 参数描述 json字符串 | {'value': 值} |
   | depict_return | str      | 返回值描述          | None          |
-
-+ 热键(hotkeys)
-
-  | 字段名        | 字段类型 | 备注                         | 示例值               |
-    | ------------- | -------- | ---------------------------- | -------------------- |
-  | id            | int      | 热键组合编号                 | 1                    |
-  | hotkey        | str      | 热键                         | ctrl, c              |
-  | depict_hotkey | str      | 热键描述                     | 复制                 |
-  | index_func    | str      | 索引方法，绑定               | copy \| null         |
-  | index_params  | str      | 索引方法入参(通常为默认参数) | {'value': 1} \| null |
 
 + 监控记录（records)
 

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from src.frontend.component.control import CommonButton, TaskThread
+from src.frontend.components import CommonButton, TaskThread, TitleLabel
 from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 
@@ -10,15 +10,12 @@ class FuncTab(QWidget):
         super().__init__()
         # 布局
         self.tab_func_layout = QVBoxLayout()
-        self.header_layout = QHBoxLayout()
         self.search_process_layout = QHBoxLayout()
         self.search_result_layout = QVBoxLayout()
         self.execute_btn_layout = QHBoxLayout()
-        self.bottom_layout = QVBoxLayout()
 
         # 控件
         control_func.root = self
-        control_func.conf_btn = CommonButton('系统参数配置')
         control_func.search_line = QLineEdit()
         control_func.search_btn = CommonButton("搜索")
         control_func.add_record_btn = CommonButton('添加录制方法')
@@ -37,32 +34,26 @@ class FuncTab(QWidget):
 
     def parse_layout(self):
         self.setLayout(self.tab_func_layout)
-        self.tab_func_layout.addLayout(self.header_layout)
         self.tab_func_layout.addLayout(self.search_process_layout)
         self.search_process_layout.addLayout(self.search_result_layout)
         self.tab_func_layout.addLayout(self.execute_btn_layout)
-        self.tab_func_layout.addLayout(self.bottom_layout)
+        self.tab_func_layout.setContentsMargins(5, 5, 5, 0)
+        self.tab_func_layout.setSpacing(5)
 
     def init_ui(self):
         self.parse_layout()
-        self.conf_setting_ui()
         self.search_action_ui()
         self.search_result_ui()
+        self.func_sperate_ui()
         self.func_process_ui()
         self.execute_btn_ui()
-        # self.log_info_ui()
 
     def connect_action(self):
         FuncAction().load_action()
 
-    def conf_setting_ui(self):
-        control_func.conf_btn = CommonButton('系统参数配置')
-        self.header_layout.addWidget(control_func.conf_btn)
-
     def search_action_ui(self):
         search_layout = QHBoxLayout()
-        search_label = QLabel()
-        search_label.setText('搜索:')
+        search_label = QLabel('搜索:')
         search_layout.addWidget(search_label)
 
         control_func.search_line.setPlaceholderText('请输入方法关键字')
@@ -79,42 +70,70 @@ class FuncTab(QWidget):
          """
         result_layout = QVBoxLayout()
 
-        info_label = QLabel()
-        info_label.setText('搜索结果:')
+        # info_label = QLabel()
+        # info_label.setText('搜索结果:')
+        info_label = TitleLabel('搜索结果')
         result_layout.addWidget(info_label)
         result_layout.addWidget(control_func.search_result_list)
+        result_layout.setSpacing(0)
 
         self.search_result_layout.addLayout(result_layout)
 
         control_func.search_result_list.setStyleSheet("""
              QListWidget::item{
-                 padding: 5px;
+                 padding: 5px; 
              }
              QListWidget::item:hover {
-                 background-color: #d6eaf8;
-                 color: black;   
+                 background-color: #e5e7e9;
+                 color: black;  
              }
+             QListWidget::item:selected {
+                background-color: #e5e7e9;  
+                color: black;  
+            }
+            QListWidget::item:selected:hover {
+                background-color: #e5e7e9; 
+                color: black;  
+            }
              """)
         # control_func.search_result_list.viewport().setCursor(Qt.PointingHandCursor)
 
         control_func.search_result_list.setContextMenuPolicy(Qt.CustomContextMenu)
 
+    def func_sperate_ui(self):
+        framespate = QLabel('➡')
+        framespate.setStyleSheet("""
+            QLabel{
+                color: #3498db;
+                font-size: 20px;
+            }
+        """)
+        self.search_process_layout.addWidget(framespate)
+
     def func_process_ui(self):
         process_layout = QVBoxLayout()
-        info_label = QLabel()
-        info_label.setText('流程显示:')
+        info_label = TitleLabel('流程显示')
         process_layout.addWidget(info_label)
 
         process_layout.addWidget(control_func.process_list)
+        process_layout.setSpacing(0)
 
         self.search_process_layout.addLayout(process_layout)
 
         control_func.process_list.setStyleSheet("""
                         QListWidget::item{
-                            padding: 5px;
+                             padding: 5px;  
+                         }
+                         QListWidget::item:hover {
+                             background-color: #e5e7e9;
+                             color: black;  
+                         }
+                         QListWidget::item:selected {
+                            background-color: #e5e7e9; 
+                            color: black;   
                         }
-                        QListWidget::item:hover {
-                            background-color: #d6eaf8;
+                        QListWidget::item:selected:hover {
+                            background-color: #e5e7e9; 
                             color: black;  
                         }
                         """)
@@ -133,12 +152,3 @@ class FuncTab(QWidget):
         self.execute_btn_layout.addWidget(control_func.save_process_btn)
         self.execute_btn_layout.addWidget(control_func.generate_py_btn)
 
-    def log_info_ui(self):
-        log_layout = QVBoxLayout()
-        log_label = QLabel()
-        log_label.setText('执行日志:')
-        control_func.log_editbox.setReadOnly(True)
-        control_func.log_editbox.append('日志已就绪...\n')
-        log_layout.addWidget(log_label)
-        log_layout.addWidget(control_func.log_editbox)
-        self.bottom_layout.addLayout(log_layout)

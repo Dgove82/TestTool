@@ -5,4 +5,4 @@ ele = Element()
 
 
 def case():
-    pass
+    ele.set_expose(value="1", name="good")

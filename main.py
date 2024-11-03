@@ -1,11 +1,10 @@
-from src.frontend.ui import QApplication, App
+from src import frontend
 import sys
-import os
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = App()
+    app = frontend.QApplication(sys.argv)
+    ex = frontend.App()
     ex.show()
     sys.exit(app.exec_())
 

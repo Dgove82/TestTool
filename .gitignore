@@ -95,14 +95,14 @@ ipython_config.py
 .python-version
 
 # pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version intermediary.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
 #   having no cross-platform support, pipenv may install dependencies that don't work on other
 #   collaborators' platforms, so it is also perfectly reasonable to exclude it.
 Pipfile.lock
 
 # poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version intermediary.
 #   See https://github.com/python-poetry/poetry/pull/1844#issuecomment-559747970 for more information.
 poetry.lock
 

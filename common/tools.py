@@ -6,14 +6,12 @@ import subprocess
 import time
 import sys
 import inspect
-import atexit
+import platform
 import pyautogui
 from loguru import logger
 from pynput import keyboard, mouse
 from PIL import ImageDraw, Image
-
 from src.utils.errors import FileExistError
-import settings
 
 
 class Singleton:
@@ -24,8 +22,94 @@ class Singleton:
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(Singleton, cls).__new__(cls)
         return cls._instance
+
+
+class RecordTool(Singleton):
+    def __init__(self, record_exe=None):
+        # 录制视频工具
+        self.record_exe: str = record_exe
+
+        # 视频录制进程
+        self.ffmpeg = None
+
+    @property
+    def is_recording(self):
+        if self.ffmpeg is None:
+            return False
+        return self.ffmpeg.poll() is None
+
+    def start_record_video(self, save_path: str, video_name='temp.mp4', timeout: int = None):
+        if not os.path.exists(self.record_exe) or self.record_exe is None:
+            raise FileExistError(f'缺少依赖程序:<{self.record_exe}> 不存在>')
+
+        env = platform.system()
+        cmd = None
+        if env == 'Darwin':
+            cmd = [
+                str(self.record_exe),
+                '-y',  # 直接覆盖保存
+                '-f', 'avfoundation',
+                '-i', '1',  # 请确保这是正确的设备索引
+                '-r', '20',
+            ]
+        elif env == 'Windows':
+            cmd = [
+                str(self.record_exe),
+                '-y',  # 直接覆盖保存
+                '-f', 'gdigrab',
+                '-i', 'desktop',  # 请确保这是正确的设备索引
+                '-b:v', '500k',
+                '-vcodec', 'mpeg4',
+                '-r', '20',
+                '-preset', 'veryfast'
+            ]
+
+        if timeout is not None:
+            cmd.extend(['-t', str(timeout)])
+
+        cmd.append(str(os.path.join(save_path, video_name)))
+
+        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def stop_record_video(self):
+        if self.is_recording:
+            self.ffmpeg.stdin.write(b'q')
+            self.ffmpeg.stdin.flush()
+            self.ffmpeg.communicate()
+            self.ffmpeg = None
+
+    @staticmethod
+    def add_label_in_image(image: Image, center_x, center_y, radius=10):
+        color = 'red'
+        thickness = 2
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((center_x - radius, center_y - radius, center_x + radius, center_y + radius),
+                     outline=color, width=thickness)
+        draw.ellipse((center_x - 2, center_y - 2, center_x + 2, center_y + 2),
+                     outline=color, width=4)
+
+    def img_record(self, save_path: str, save_name: str, rectangle: int = 50, full: bool = False):
+        mouse_position = pyautogui.position()
+        center_x = int(mouse_position.x)
+        center_y = int(mouse_position.y)
+        if full:
+            screenshot = pyautogui.screenshot()
+            size = pyautogui.size()
+            screenshot = screenshot.resize((size.width, size.height))
+            self.add_label_in_image(screenshot, center_x, center_y)
+        else:
+            width, height = rectangle * 2, rectangle * 2
+            left = center_x - width // 2
+            top = center_y - height // 2
+            screenshot = pyautogui.screenshot(region=(left, top, width, height))
+            self.add_label_in_image(screenshot, rectangle, rectangle)
+
+        # file_name = ContentTool(screenshot.tobytes()).byte_decode_md5()
+
+        # 将截图保存为图片文件
+        screenshot.save(os.path.join(save_path, f'{save_name}.png'))
 
 
 class WatchTool:
@@ -38,9 +122,6 @@ class WatchTool:
 
         # 是否监听鼠标点击事件
         self.monitor: bool = monitor
-
-        # 视频录制进程
-        self.ffmpeg = None
 
         # 事件录制
         self.__events = []
@@ -61,98 +142,14 @@ class WatchTool:
         """
         return self.mouse_listener.is_alive()
 
-    @property
-    def is_recording(self):
-        if self.ffmpeg is None:
-            return False
-        return self.ffmpeg.poll() is None
-
-    def start_record_video(self, video_name='temp.mp4', timeout: int = None):
-        if not os.path.exists(settings.TOOL_FFMPEG):
-            log.error(f'缺少依赖程序:<{settings.TOOL_FFMPEG}> 不存在>')
-            raise FileExistError(f'缺少依赖程序:<{settings.TOOL_FFMPEG}> 不存在>')
-
-        cmd = None
-        if settings.RUN_ENV == 'Darwin':
-            cmd = [
-                str(settings.TOOL_FFMPEG),
-                '-y',  # 直接覆盖保存
-                '-f', 'avfoundation',
-                '-i', '1',  # 请确保这是正确的设备索引
-                '-r', '20',
-            ]
-        elif settings.RUN_ENV == 'Windows':
-            cmd = [
-                str(settings.TOOL_FFMPEG),
-                '-y',  # 直接覆盖保存
-                '-f', 'gdigrab',
-                '-i', 'desktop',  # 请确保这是正确的设备索引
-                '-b:v', '500k',
-                '-vcodec', 'mpeg4',
-                '-r', '20',
-                '-preset', 'veryfast'
-            ]
-
-        if timeout is not None:
-            cmd.extend(['-t', str(timeout)])
-
-        cmd.append(str(settings.VIDEO_DIR.joinpath(video_name)))
-
-        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        log.info(f'开始录制<{video_name}>视频')
-
-    def stop_record_video(self):
-        if self.is_recording:
-            self.ffmpeg.stdin.write(b'q')
-            self.ffmpeg.stdin.flush()
-            self.ffmpeg.communicate()
-            log.success('已停止视频录制')
-            self.ffmpeg = None
-        else:
-            if self.ffmpeg is not None:
-                log.warning('当前并未在录制视频')
-                _, stderr = self.ffmpeg.communicate()
-                log.error(f'FFmpeg 错误: {stderr.decode()}')
-
-    @staticmethod
-    def add_label_in_image(image: Image, center_x, center_y, radius=10):
-        color = 'red'
-        thickness = 2
-        draw = ImageDraw.Draw(image)
-        draw.ellipse((center_x - radius, center_y - radius, center_x + radius, center_y + radius),
-                     outline=color, width=thickness)
-        draw.ellipse((center_x - 2, center_y - 2, center_x + 2, center_y + 2),
-                     outline=color, width=4)
-
-    def img_record(self, rectangle: int = 50, full: bool = False):
-        mouse_position = pyautogui.position()
-        center_x = int(mouse_position.x)
-        center_y = int(mouse_position.y)
-        if full:
-            screenshot = pyautogui.screenshot()
-            size = pyautogui.size()
-            screenshot = screenshot.resize((size.width, size.height))
-            self.add_label_in_image(screenshot, center_x, center_y)
-        else:
-            width, height = rectangle * 2, rectangle * 2
-            left = center_x - width // 2
-            top = center_y - height // 2
-            screenshot = pyautogui.screenshot(region=(left, top, width, height))
-            self.add_label_in_image(screenshot, rectangle, rectangle)
-
-        file_name = ContentTool(screenshot.tobytes()).byte_decode_md5()
-
-        # 将截图保存为图片文件
-        screenshot.save(os.path.join(settings.IMAGE_DIR, f'{file_name}.png'))
-
     def append_event(self, event):
         self.__events.append({"run_time": time.time(), "event": event})
 
     def on_click(self, x, y, button, pressed):
         self.append_event(['click', button.name, pressed, x, y])
         if self.monitor and pressed:
-            log.info(f"按下<{x}, {y}>处")
-            self.img_record()
+            print(f"按下<{x}, {y}>处")
+            RecordTool().img_record(save_path='./', save_name=f'{time.time()}.mp4')
 
     def on_move(self, x, y):
         self.append_event(['move', x, y])
@@ -166,11 +163,9 @@ class WatchTool:
 
     def on_release(self, key):
         if key == keyboard.Key.down and not self.is_listening:
-            log.info('开始录制')
             self.mouse_listener.start()
         elif key == keyboard.Key.esc:
             self.stop()
-            log.info('录制结束')
         else:
             self.append_event(['release', str(key)])
 
@@ -181,7 +176,7 @@ class WatchTool:
     def start(self):
         self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
         self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        log.info('按下 ⬇ 键开始录制')
+        print('按下 ⬇ 键开始录制')
         self.keyboard_listener.start()
         self.keyboard_listener.join()
         self.mouse_listener.join()
@@ -190,7 +185,7 @@ class WatchTool:
         if events is None:
             events = self.__events if self.__events is not None else []
 
-        log.info('事件开始读取')
+        print('事件开始读取')
 
         last_time = None
 
@@ -233,7 +228,7 @@ class WatchTool:
                     key_attr = key
                 self.keyboard_controller.release(key_attr)
 
-        log.success('录制事件读取结束')
+        print('录制事件读取结束')
 
 
 class ContentTool:
@@ -257,7 +252,7 @@ class ContentTool:
         return hashlib.md5(self.content).hexdigest()
 
 
-class File:
+class FileTool:
     def __init__(self, path):
         self.path = str(path)
         self.dir = None
@@ -301,7 +296,7 @@ class File:
             f.write(data)
 
 
-class JsonFile(File):
+class JsonFileTool(FileTool):
     def __init__(self, path):
         super().__init__(path)
 
@@ -343,13 +338,12 @@ class TimeTool:
         return time.strftime("%Y-%m-%d", TimeTool.now())
 
 
-LOG_FILE = f'{settings.LOG_DIR.joinpath(TimeTool.get_format_day())}.log'
-
-
 class LogTool:
-    def __init__(self, log_level="DEBUG", log_file=LOG_FILE):
+    def __init__(self, log_level="DEBUG", log_file="temp.log", project_root=''):
         self.log_level = log_level
         self.log_file = log_file
+        # 项目根目录
+        self.project_root = project_root
         self.logger = logger
         self.configure_logging()
         self.last_info = None
@@ -377,10 +371,9 @@ class LogTool:
         self.logger.add(sys.stdout, level=self.log_level, backtrace=True, format=color_format)
         self.logger.add(self.capture_msg, format=color_format)
 
-    @staticmethod
-    def prefix_info():
+    def prefix_info(self):
         frame = inspect.stack()[3]
-        file_path = os.path.splitext(os.path.relpath(frame.filename, settings.BASE_PATH))[0]
+        file_path = os.path.splitext(os.path.relpath(frame.filename, self.project_root))[0]
         prefix = f"{file_path}{'.' + frame.function if frame.function != '<module>' else ''}:{frame.lineno} "
         return prefix
 
@@ -413,12 +406,5 @@ class LogTool:
         return self.msg_struct(level="EXCEPTION", msg=msg)
 
 
-log = LogTool()
-
-watch = WatchTool()
-
-atexit.register(watch.stop_record_video)
-
 if __name__ == '__main__':
-    watch.start()
-    watch.replay_events(watch.events)
+    pass
