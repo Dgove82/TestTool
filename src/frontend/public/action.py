@@ -5,7 +5,9 @@ import settings
 from src.frontend.public import control_func, app_root
 from common.tools import Singleton
 from src.intermediary.center import ControlCenter, handler
-from src.frontend.components import ExecDialog, FuncParamDialog, DefineParamDialog, ConfDialog, EditParamDialog
+from src.intermediary.data_load import init_table
+from src.frontend.components import (ExecDialog, FuncParamDialog, DefineParamDialog,
+                                     EditParamDialog, LoadDialog,GeneratePyDialog)
 from PyQt5.QtWidgets import *
 
 
@@ -13,6 +15,7 @@ class FuncAction(Singleton):
     def __init__(self):
         self.app = app_root
         self.control = control_func
+        init_table()
 
     def load_action(self):
         self.control.search_result_list.itemDoubleClicked.connect(self.action_step_add)
@@ -23,8 +26,9 @@ class FuncAction(Singleton):
         self.control.exec_btn.clicked.connect(self.action_process_exec)
         self.control.save_process_btn.clicked.connect(self.action_save_process)
         self.control.read_process_btn.clicked.connect(self.action_read_process)
+        self.control.data_load_btn.clicked.connect(self.action_load_func)
         self.control.generate_py_btn.clicked.connect(self.action_generate_py)
-        self.control.search_btn.clicked.connect(self.action_search)
+        self.control.search_btn.clicked.connect(lambda: self.action_search(1))
         self.control.add_record_btn.clicked.connect(self.action_add_record)
 
         self.action_search()
@@ -124,21 +128,24 @@ class FuncAction(Singleton):
                 else:
                     self.app.ui_log.info(f'录制方法名<{func.get("name")}>更新为<{value}>')
                     func[key] = value
-                    self.control.process_list.currentItem().setText(f'{ControlCenter.checked+1}.{value}')
+                    self.control.process_list.currentItem().setText(f'{ControlCenter.checked + 1}.{value}')
 
             if func.get('type') == 'exist':
                 func["params"] = json.dumps(temp)
                 self.app.ui_log.info(f'<{func.get("depict_func")}>参数更新成功')
             self.app.dialog.close_dialog()
 
-    def action_search(self):
+    def action_search(self, way=0):
         """
         执行搜索
         """
         self.control.search_result_list.clear()
         search_key = self.control.search_line.text()
         handler.func_search(search_key)
-        app_root.ui_log.info(f'搜索到{len(ControlCenter.search_record)}个方法')
+        if way == 0:
+            app_root.ui_log.info(f'共加载{len(ControlCenter.search_record)}个方法')
+        else:
+            app_root.ui_log.info(f'搜索到{len(ControlCenter.search_record)}个方法')
         for index, func in enumerate(ControlCenter.search_record):
             line = f'{index + 1}.{func.depict_func}'
             self.control.search_result_list.addItem(line)
@@ -199,24 +206,37 @@ class FuncAction(Singleton):
         """
         读取流程,从自定义文件中读取
         """
-        handler.steps_read()
-        self.control.process_list.clear()
-        for f in ControlCenter.steps:
-            f_type = f.get('type', None)
-            if f_type == 'exist':
-                self.control.process_list.addItem(f'{f.get("depict_func", None)}')
-            elif f_type == 'define':
-                self.control.process_list.addItem(f'{f.get("name", None)}')
-        self.app.ui_log.success(f'已从<{settings.Files.PROCESS_PATH}>读取流程')
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self.app.root, "打开流程文件", str(settings.Files.PROCESS_DIR),
+                                                   "JSON Files (*.json)", options=options)
+        if file_path:
+            handler.steps_read(file_path)
+            ControlCenter.exec_step_end = len(ControlCenter.steps)
+            self.control.process_list.clear()
+            for index, f in enumerate(ControlCenter.steps):
+                f_type = f.get('type', None)
+                if f_type == 'exist':
+                    self.control.process_list.addItem(f'{index + 1}.{f.get("depict_func", None)}')
+                elif f_type == 'define':
+                    self.control.process_list.addItem(f'{index + 1}.{f.get("name", None)}')
 
     def action_save_process(self):
         """
         将留存储存到自定义文件中
         """
-        handler.steps_save()
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self.app.root, "保存流程", str(settings.Files.PROCESS_DIR),
+                                                   "JSON Files (*.json)", options=options)
+        if file_path:
+            handler.steps_save(file_path)
+
+    def action_load_func(self):
+        self.app.dialog = LoadDialog(self.app.root)
+        self.app.dialog.exec_()
 
     def action_generate_py(self):
         """
         生成py代码
         """
-        handler.generate_py()
+        self.app.dialog = GeneratePyDialog(self.app.root)
+        self.app.dialog.exec_()

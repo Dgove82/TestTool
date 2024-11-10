@@ -1,8 +1,6 @@
-from library.element import Element
-from common.tools import watch
-
-ele = Element()
+from library.operation.element import Element
 
 
-def case():
-    ele.set_expose(value="1", name="good")
+class TestCase007(Element):
+    def test_case_009(self):
+        self.set_expose(value="1", name="good")

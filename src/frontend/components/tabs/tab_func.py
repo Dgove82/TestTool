@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from src.frontend.components import CommonButton, TaskThread, TitleLabel
+from src.frontend.components import CommonButton, TitleLabel
 from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 
 
 class FuncTab(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, index, parent=None):
+        super().__init__(parent)
+        self.index = index
         # 布局
         self.tab_func_layout = QVBoxLayout()
         self.search_process_layout = QHBoxLayout()
@@ -25,12 +26,15 @@ class FuncTab(QWidget):
         control_func.reset_btn = CommonButton('重置流程')
         control_func.read_process_btn = CommonButton('读取流程')
         control_func.save_process_btn = CommonButton('保存流程')
-        control_func.generate_py_btn = CommonButton('生成py')
+
+        control_func.data_load_btn = CommonButton('重载方法')
+        control_func.generate_py_btn = CommonButton('生成用例脚本')
         control_func.right_menu = QMenu()
-        control_func.run_task = TaskThread()
+
+        control_func.actions = FuncAction()
 
         self.init_ui()
-        self.connect_action()
+        control_func.actions.load_action()
 
     def parse_layout(self):
         self.setLayout(self.tab_func_layout)
@@ -47,9 +51,6 @@ class FuncTab(QWidget):
         self.func_sperate_ui()
         self.func_process_ui()
         self.execute_btn_ui()
-
-    def connect_action(self):
-        FuncAction().load_action()
 
     def search_action_ui(self):
         search_layout = QHBoxLayout()
@@ -112,31 +113,45 @@ class FuncTab(QWidget):
 
     def func_process_ui(self):
         process_layout = QVBoxLayout()
-        info_label = TitleLabel('流程显示')
-        process_layout.addWidget(info_label)
 
-        process_layout.addWidget(control_func.process_list)
-        process_layout.setSpacing(0)
+        process_btn_layout = QHBoxLayout()
+        process_btn_layout.addWidget(control_func.exec_btn)
+        process_btn_layout.addWidget(control_func.reset_btn)
+        process_btn_layout.addWidget(control_func.save_process_btn)
+        process_btn_layout.addWidget(control_func.read_process_btn)
+        process_btn_layout.setSpacing(5)
+
+        process_layout.addLayout(process_btn_layout)
+
+        process_res_layout = QVBoxLayout()
+
+        info_label = TitleLabel('流程显示')
+        process_res_layout.addWidget(info_label)
+
+        process_res_layout.addWidget(control_func.process_list)
+        process_res_layout.setSpacing(0)
+        process_layout.setSpacing(5)
+        process_layout.addLayout(process_res_layout)
 
         self.search_process_layout.addLayout(process_layout)
 
         control_func.process_list.setStyleSheet("""
-                        QListWidget::item{
-                             padding: 5px;  
-                         }
-                         QListWidget::item:hover {
-                             background-color: #e5e7e9;
-                             color: black;  
-                         }
-                         QListWidget::item:selected {
-                            background-color: #e5e7e9; 
-                            color: black;   
-                        }
-                        QListWidget::item:selected:hover {
-                            background-color: #e5e7e9; 
-                            color: black;  
-                        }
-                        """)
+                                QListWidget::item{
+                                     padding: 5px;  
+                                 }
+                                 QListWidget::item:hover {
+                                     background-color: #e5e7e9;
+                                     color: black;  
+                                 }
+                                 QListWidget::item:selected {
+                                    background-color: #e5e7e9; 
+                                    color: black;   
+                                }
+                                QListWidget::item:selected:hover {
+                                    background-color: #e5e7e9; 
+                                    color: black;  
+                                }
+                                """)
         # control_func.process_list.viewport().setCursor(Qt.PointingHandCursor)
 
         control_func.process_list.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -146,9 +161,6 @@ class FuncTab(QWidget):
         显示 重置 / 执行
         :return:
         """
-        self.execute_btn_layout.addWidget(control_func.exec_btn)
-        self.execute_btn_layout.addWidget(control_func.reset_btn)
-        self.execute_btn_layout.addWidget(control_func.read_process_btn)
-        self.execute_btn_layout.addWidget(control_func.save_process_btn)
+        self.execute_btn_layout.addWidget(control_func.data_load_btn)
         self.execute_btn_layout.addWidget(control_func.generate_py_btn)
-
+        self.execute_btn_layout.setSpacing(40)

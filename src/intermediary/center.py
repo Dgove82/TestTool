@@ -1,14 +1,15 @@
 import time
-
+import importlib
 import settings
 import json
+import os
 import traceback
 from typing import Union
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import delete, and_
-
+from sqlalchemy.sql import exists
+# import uiautomation as auto
 from common.tools import JsonFileTool, FileTool
-from library.element import Element
 
 
 class SQLserver:
@@ -54,13 +55,17 @@ class SQLserver:
             else:
                 raise TypeError
             session.commit()
-            settings.log.success(f'数据记录插入成功')
+            # settings.log.success(f'数据记录插入成功')
         except Exception as err:
             session.rollback()
             settings.log.error(f'插入失败,原因:{err}')
         finally:
             session.close()
 
+    def record_exist(self, model):
+        session = self.get_db()
+        flag = session.query(model).first()
+        return True if flag is not None else False
 
 class ControlCenter:
     """
@@ -185,7 +190,9 @@ class ControlCenter:
         if len(ControlCenter.steps) == 0 or ControlCenter.exec_step_start > ControlCenter.exec_step_end:
             settings.log.warning(f'没有执行内容')
             return
-        ele = Element()
+        # with auto.UIAutomationInitializerInThread():
+        element_lib = importlib.import_module(f'library.operation.element')
+        ele = getattr(element_lib, 'Element')()
         for i in range(ControlCenter.count):
             if ControlCenter.count > 1:
                 settings.log.info(f'开始执行{i+1}遍')
@@ -205,33 +212,34 @@ class ControlCenter:
                     settings.log.success(f'执行<{f.get("name", None)}>完毕')
             if ControlCenter.count > 1:
                 settings.log.info(f'第{i + 1}遍执行完毕')
+        settings.log.success('流程执行完毕')
 
     @staticmethod
-    def steps_save():
+    def steps_save(file_path=os.path.join(settings.Files.PROCESS_DIR, "process.json")):
         """
         方法存储至process.json
         :return:
         """
-        JsonFileTool(settings.Files.PROCESS_PATH).write(ControlCenter.steps)
-        settings.log.success(f'流程文件保存至<{settings.Files.PROCESS_PATH}>')
+        JsonFileTool(file_path).write(ControlCenter.steps)
+        settings.log.success(f'流程文件保存至<{file_path}>')
 
     @staticmethod
-    def steps_read():
+    def steps_read(file_path=os.path.join(settings.Files.PROCESS_DIR, "process.json")):
         """
         从process.json读取
         """
-        ControlCenter.steps = JsonFileTool(settings.Files.PROCESS_PATH).read()
+        ControlCenter.steps = JsonFileTool(file_path).read()
+        settings.log.success(f'已从<{file_path}>读取流程')
 
     @staticmethod
-    def generate_py():
+    def generate_py(module_name="Case"):
         """
         将steps反向生成py
         :return:
         """
-        header = """from library.element import Element
-from common.tools import watch\n
-ele = Element()\n\n
-def case():\n"""
+        header = f"""from library.operation.element import Element\n\n
+class Test{module_name}(Element):
+    def test_{module_name.lower()}_1(self):\n"""
         content = ''
 
         index = 1
@@ -241,20 +249,29 @@ def case():\n"""
             if f_type == 'exist':
                 params = json.loads(f.get("params", "{}"))
                 func = f.get("func", None)
+                depict = f.get("depict_func", None)
                 temp_params = [f'{key}="{params[key]}"' for key in params]
-                content += f'    ele.{func}({", ".join(temp_params)})\n'
+                content += f'        # {depict}\n'
+                content += f'        self.{func}({", ".join(temp_params)})\n'
             elif f_type == 'define':
-                content += f'    event_{index} = {f.get("events", None)}\n'
-                content += f'    watch.replay_events(event_{index})\n'
+                depict = f.get('name', None)
+                content += f'        # 录制方法: {depict}\n'
+                content += f'        event_{index} = {f.get("events", None)}\n'
+                content += f'        self.replay_events(event_{index})\n'
                 index += 1
             else:
                 settings.log.warning(f'暂不支持{f}方法')
                 continue
         if len(ControlCenter.steps) == 0:
-            content += '    pass\n'
-        FileTool(settings.Files.CASE_PATH).write(header + content)
-        settings.log.success(f'py代码已保存于{settings.Files.CASE_PATH}')
+            content += '        # 为什么要生成空用例？\n'
+            content += '        pass\n'
         return header + content
+
+    @staticmethod
+    def script_save(content, file_path=os.path.join(settings.Files.CASE_DIR, "case.py")):
+        FileTool(file_path).write( content)
+        settings.log.success(f'py代码已保存于{file_path}')
+
 
     def load_conf(self):
         db = self.sql_server.get_db()

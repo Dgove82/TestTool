@@ -1,5 +1,6 @@
 import json
 import re
+
 import settings
 from settings import Function, Confs
 from src.intermediary.center import SQLserver
@@ -49,11 +50,8 @@ class FuncParse:
         :return:
         """
         res = []
-        server = SQLserver()
-        server.delete_model(Function)
 
         for res_dict in self.regex():
-            settings.log.info(f'方法{res_dict.items()}')
             func = Function()
             func.func = res_dict.get('func', None)
             func.params = json.dumps(self.parse_params(res_dict.get('params', None)), ensure_ascii=False)
@@ -61,9 +59,11 @@ class FuncParse:
             func.depict_func = depict[0]
             func.depict_params = json.dumps(depict[1], ensure_ascii=False)
             func.depict_return = depict[2]
-
+            settings.log.info(f'方法<{func.depict_func if func.depict_func else func.func}>解析完成')
             res.append(func)
 
+        server = SQLserver()
+        server.delete_model(Function)
         server.insert(res)
 
     @staticmethod
@@ -143,12 +143,17 @@ class ConfParse:
                            conf_type=0)
         configs.append(conf_video)
 
-        conf_process = Confs(keys='PROCESS_PATH', values=str(settings.Files.PROCESS_PATH), depict_key='默认流程文件',
+        conf_process = Confs(keys='PROCESS_DIR', values=str(settings.Files.PROCESS_DIR), depict_key='用例流程目录',
                              conf_type=0)
         configs.append(conf_process)
 
-        conf_case = Confs(keys='CASE_PATH', values=str(settings.Files.CASE_PATH), depict_key='默认脚本文件', conf_type=0)
+        conf_case = Confs(keys='CASE_DIR', values=str(settings.Files.CASE_DIR), depict_key='用例脚本目录',
+                          conf_type=0)
         configs.append(conf_case)
+
+        conf_library = Confs(keys='LIBRARY_PATH', values=str(settings.Files.LIBRARY_PATH), depict_key='方法库文件',
+                             conf_type=0)
+        configs.append(conf_library)
 
         SQLserver().insert(configs)
 
@@ -156,7 +161,11 @@ class ConfParse:
         pass
 
 
+def init_table():
+    server = SQLserver()
+    if not server.record_exist(Confs):
+        ConfParse().init_conf()
+
+
 if __name__ == '__main__':
-    # log.info(f'{"a"}?')
-    FuncParse(settings.Library.LIB_ELEMENT).handler()
     ConfParse().init_conf()

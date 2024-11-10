@@ -1,0 +1,18 @@
+[
+  {
+    "type": "exist",
+    "func": "set_expose",
+    "params": "{\"value\": \"2\", \"name\": \"expoese\"}",
+    "depict_func": "【单功能】设置曝光",
+    "depict_params": "{\"name\": \"名称\", \"value\": \"值\"}",
+    "depict_return": "/"
+  },
+  {
+    "type": "exist",
+    "func": "set_value",
+    "params": "{\"value\": \"1\", \"name\": \"good\"}",
+    "depict_func": "【单功能】设置值设置值设置值设置值设置值设置值设置值设置值设置值设置值设置值设置值设置值设置值",
+    "depict_params": "{\"name\": \"名称\", \"value\": \"值\"}",
+    "depict_return": "/"
+  }
+]

@@ -74,14 +74,17 @@ class FuncControl(Singleton):
         self.read_process_btn = None
         # 保存流程按钮
         self.save_process_btn = None
+        # 加载方法库按钮
+        self.data_load_btn = None
         # 生成py代码按钮
         self.generate_py_btn = None
         # 右键菜单
         self.right_menu = None
         # 临时会话窗口
         self.dialog = None
-        # 执行线程
-        self.run_task = None
+
+        # actions
+        self.actions = None
 
 
 app_root = AppRoot()

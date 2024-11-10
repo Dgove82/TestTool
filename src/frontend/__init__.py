@@ -1,8 +1,8 @@
 import sys
-from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QTabWidget,
+from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout,
                              QWidget, QLabel, QApplication, QHBoxLayout)
 from PyQt5.QtCore import Qt
-from src.frontend.components.tabs import FuncTab, TempTab
+from src.frontend.components.tabs import MultTab
 from src.frontend.components import LogThread, LogEditBox, KeyWatchThread, CommonButton, ConfDialog, TitleLabel
 from src.frontend.public import app_root
 from pynput import keyboard
@@ -17,10 +17,6 @@ class App(QMainWindow):
 
         self.outermost_layout = QVBoxLayout()
 
-        self.tab_widget = QTabWidget()
-
-        self.tab_temp = TempTab()
-        self.tab_sub = FuncTab()
         self.log_editbox = LogEditBox()
 
         self.init_ui()
@@ -39,12 +35,11 @@ class App(QMainWindow):
         # 设置垂直布局
         central_widget.setLayout(self.outermost_layout)
 
+        self.log_record_start()
+        self.key_watch_start()
         self.header_ui()
         self.tabs_ui()
         self.log_info_ui()
-        self.log_record_start()
-        self.key_watch_start()
-
         self.load_actions()
 
     def load_actions(self):
@@ -57,7 +52,7 @@ class App(QMainWindow):
         app_root.conf_btn.setStyleSheet("""
                     QPushButton{
                         background-color: transparent;
-                        font: bold 50pt;
+                        font: bold 20pt;
                         color: #839192;
                     }
                 """)
@@ -69,7 +64,7 @@ class App(QMainWindow):
         title_label = QLabel('测试小工具', self)
         title_label.setStyleSheet("""
                     QLabel{
-                        font: bold 30pt;
+                        font: bold 20pt;
                         letter-spacing: 10px;
                     }
                 """)
@@ -84,22 +79,9 @@ class App(QMainWindow):
 
     def tabs_ui(self):
         # 创建分页
-        self.outermost_layout.addWidget(self.tab_widget)
-        self.outermost_layout.setStretchFactor(self.tab_widget, 20)
-        self.tab_widget.setStyleSheet("""
-                    QTabBar::tab:selected {
-                        background-color: #4d85ff;
-                        color: white;
-                    }
-                    QTabBar::tab:!selected {
-                        background-color: lightgrey;
-                        color: black;
-                    }
-                """)
-
-        self.tab_widget.addTab(self.tab_sub, '方法执行')
-
-        self.tab_widget.addTab(self.tab_temp, '临时页')
+        tab_widget = MultTab()
+        self.outermost_layout.addWidget(tab_widget)
+        self.outermost_layout.setStretchFactor(tab_widget, 20)
 
     def log_info_ui(self):
         log_layout = QVBoxLayout()

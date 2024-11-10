@@ -46,24 +46,21 @@ class Files:
     EVENTS_PATH = FILES_PATH.joinpath('events.log')
 
     # 记录流程
-    PROCESS_PATH = FILES_PATH.joinpath('process.json')
+    PROCESS_DIR = FILES_PATH.joinpath('process')
 
     # 生成的py文件
-    CASE_PATH = FILES_PATH.joinpath('case.py')
+    CASE_DIR = BASE_PATH.joinpath('library').joinpath('case')
 
-
-class Library:
-    # 控件相关操作文件目录
-    LIBRARY_PATH = BASE_PATH.joinpath('library')
-
-    # 需要收录方法至数据库的方法库文件
-    LIB_ELEMENT = LIBRARY_PATH.joinpath('element.py')
+    # 方法库
+    LIBRARY_PATH = os.path.join(BASE_PATH, 'library/operation/element.py')
 
 
 FileTool.check_path(Files.FILES_PATH)
 FileTool.check_path(Files.LOG_DIR)
 FileTool.check_path(Files.IMAGE_DIR)
 FileTool.check_path(Files.VIDEO_DIR)
+FileTool.check_path(Files.PROCESS_DIR)
+FileTool.check_path(Files.CASE_DIR)
 
 LOG_FILE = f'{os.path.join(Files.LOG_DIR, TimeTool.get_format_day())}.log'
 
@@ -152,6 +149,3 @@ finally:
 
 # 注册结束事件
 atexit.register(record.stop_record_video)
-
-
-print(Files.IMAGE_DIR)
