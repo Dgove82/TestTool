@@ -66,6 +66,8 @@ class FuncControl(Singleton):
         self.search_result_list = None
         # 执行流程展示列表
         self.process_list = None
+        # 箭头添加
+        self.arrow_btn = None
         # 执行流程按钮
         self.exec_btn = None
         # 重置流程按钮

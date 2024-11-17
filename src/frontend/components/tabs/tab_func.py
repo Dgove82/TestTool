@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from src.frontend.components import CommonButton, TitleLabel
+from src.frontend.components import CommonButton, TitleLabel, ClickLabel
 from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 
@@ -22,6 +22,7 @@ class FuncTab(QWidget):
         control_func.add_record_btn = CommonButton('添加录制方法')
         control_func.search_result_list = QListWidget()
         control_func.process_list = QListWidget()
+        control_func.arrow_btn = ClickLabel('➡')
         control_func.exec_btn = CommonButton('执行流程')
         control_func.reset_btn = CommonButton('重置流程')
         control_func.read_process_btn = CommonButton('读取流程')
@@ -102,14 +103,14 @@ class FuncTab(QWidget):
         control_func.search_result_list.setContextMenuPolicy(Qt.CustomContextMenu)
 
     def func_sperate_ui(self):
-        framespate = QLabel('➡')
-        framespate.setStyleSheet("""
-            QLabel{
-                color: #3498db;
-                font-size: 20px;
-            }
-        """)
-        self.search_process_layout.addWidget(framespate)
+        # framespate = QLabel('➡')
+        # framespate.setStyleSheet("""
+        #     QLabel{
+        #         color: #3498db;
+        #         font-size: 20px;
+        #     }
+        # """)
+        self.search_process_layout.addWidget(control_func.arrow_btn)
 
     def func_process_ui(self):
         process_layout = QVBoxLayout()

@@ -1,6 +1,32 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QTextCursor, QColor, QTextCharFormat
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
+
+
+class ClickLabel(QLabel):
+    # 定义一个信号，当点击事件发生时发出
+    clicked = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setStyleSheet("""
+            QLabel{
+                color: #3498db;
+                font-size: 20px;
+            }
+        """)
+        self.setFixedHeight(20)
+
+    def mousePressEvent(self, event):
+        # 当鼠标点击时发出信号
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+
+    def enterEvent(self, event):
+        self.setCursor(Qt.PointingHandCursor)
+
+    def leaveEvent(self, event):
+        self.unsetCursor()
 
 
 class CommonButton(QPushButton):
@@ -83,3 +109,36 @@ class TitleLabel(QLabel):
                               padding: 5px;
                            }
                         """)
+
+
+class NoAutoScrollTreeWidget(QTreeWidget):
+    def scrollTo(self, index, hint=...):
+        pass
+
+
+class CssTableView(QTableView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.init_style()
+
+    def init_style(self):
+        self.setStyleSheet("""
+                    QTableView {
+                        alternate-background-color: #E8E8E8;
+                        gridline-color: #C0C0C0;
+                    }
+                    QTableView::item:hover {
+                        background-color: #F0F0F0;
+                    }
+                    QTableView::item:selected {
+                        color: #FFFFFF;
+                        background-color: #0064C8;
+                    }
+                    QHeaderView::section {
+                        background-color: #D0D0D0;
+                        border: 1px solid #C0C0C0;
+                    }
+                """)
+        # 隐藏垂直头
+        self.verticalHeader().setVisible(False)
+        self.setAlternatingRowColors(True)

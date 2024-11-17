@@ -7,7 +7,7 @@ from common.tools import Singleton
 from src.intermediary.center import ControlCenter, handler
 from src.intermediary.data_load import init_table
 from src.frontend.components import (ExecDialog, FuncParamDialog, DefineParamDialog,
-                                     EditParamDialog, LoadDialog,GeneratePyDialog)
+                                     EditParamDialog, LoadDialog,GeneratePyDialog, DialogTip)
 from PyQt5.QtWidgets import *
 
 
@@ -22,6 +22,7 @@ class FuncAction(Singleton):
         self.control.process_list.itemDoubleClicked.connect(self.action_step_edit)
         self.control.search_result_list.customContextMenuRequested.connect(self.action_open_result_menu)
         self.control.process_list.customContextMenuRequested.connect(self.action_open_process_menu)
+        self.control.arrow_btn.clicked.connect(self.action_step_add)
         self.control.reset_btn.clicked.connect(self.action_process_reset)
         self.control.exec_btn.clicked.connect(self.action_process_exec)
         self.control.save_process_btn.clicked.connect(self.action_save_process)
@@ -35,6 +36,11 @@ class FuncAction(Singleton):
 
     def action_step_add(self):
         index = self.control.search_result_list.currentRow()
+        if index == -1:
+            self.app.dialog = DialogTip('请在搜索结果中选中对应方法后添加', parent=self.app.root)
+            self.app.dialog.exec_()
+            return
+
         handler.step_click(index)
 
         self.app.dialog = FuncParamDialog(parent=self.app.root)

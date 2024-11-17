@@ -7,5 +7,9 @@ class LoadThread(QThread):
     finish_signal = pyqtSignal()
 
     def run(self):
-        FuncParse(settings.Files.LIBRARY_PATH).handler()
-        self.finish_signal.emit()
+        try:
+            FuncParse(settings.Files.LIBRARY_PATH).handler()
+        except Exception as e:
+            settings.log.warning(str(e))
+        finally:
+            self.finish_signal.emit()

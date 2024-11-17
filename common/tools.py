@@ -71,7 +71,7 @@ class RecordTool(Singleton):
 
         cmd.append(str(os.path.join(save_path, video_name)))
 
-        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def stop_record_video(self):
         if self.is_recording:
@@ -79,6 +79,11 @@ class RecordTool(Singleton):
             self.ffmpeg.stdin.flush()
             self.ffmpeg.communicate()
             self.ffmpeg = None
+        else:
+            if self.ffmpeg is not None:
+                stdout, stderr = self.ffmpeg.communicate()
+                self.ffmpeg = None
+                raise ValueError(f'{stdout.decode(), stderr.decode()}')
 
     @staticmethod
     def add_label_in_image(image: Image, center_x, center_y, radius=10):
