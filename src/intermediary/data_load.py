@@ -1,5 +1,8 @@
 import json
+import os
 import re
+import shutil
+import traceback
 
 import settings
 from settings import Function, Confs
@@ -122,12 +125,69 @@ class FuncParse:
         return depict_func, depict_params, depict_return
 
 
+class FuncUpdate:
+    RESOURCE_NET = r'/Volumes/A-Dgove/Code/Python-Projects/TestTool/library'
+    VERSIONS = 'versions.json'
+
+    def __init__(self):
+        self.versions = None
+
+    def get_current_version(self):
+        import importlib
+        try:
+            element_lib = importlib.import_module(f'library.operation')
+        except ModuleNotFoundError:
+            return 0.0
+        return element_lib.version
+
+    def get_net_versions(self):
+        with open(os.path.join(FuncUpdate.RESOURCE_NET, FuncUpdate.VERSIONS), 'r', encoding='utf-8') as f:
+            self.versions = json.load(f)
+
+    def clear_directory(self, directory):
+        for file in os.listdir(directory):
+            file_path = os.path.join(directory, file)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                settings.log.error(f'删除{file_path}出现错误:{e}')
+
+    def update_library(self):
+        file = f'{self.versions.get("zip")}{self.versions.get("now")}.zip'
+        current_library = settings.Files.LIBRARY_DIR
+        if not os.path.exists(current_library):
+            os.makedirs(current_library)
+
+        settings.log.info('清理当前方法库')
+        self.clear_directory(current_library)
+        settings.log.info('开始拉取最新方法库')
+        shutil.unpack_archive(os.path.join(FuncUpdate.RESOURCE_NET, file), current_library)
+        settings.log.success('方法库拉取完毕')
+
+    def update_handler(self):
+        try:
+            self.get_net_versions()
+            now = float(self.versions.get('now', 0.0))
+            if now > self.get_current_version():
+                self.update_library()
+            else:
+                settings.log.info('当前已是最新版本')
+        except Exception as e:
+            if settings.DEBUG:
+                settings.log.debug(f'{traceback.format_exc()}')
+            settings.log.warning(f'更新失败:{e}')
+
+
 class ConfParse:
 
     @staticmethod
     def init_conf():
         SQLserver().delete_model(Confs)
         ConfParse.init_app_for_conf()
+        ConfParse.init_definesight_for_conf()
 
     @staticmethod
     def init_app_for_conf():
@@ -157,9 +217,54 @@ class ConfParse:
 
         SQLserver().insert(configs)
 
-    def init_definesight_for_conf(self):
-        pass
+    @staticmethod
+    def init_definesight_for_conf():
+        configs = []
+        class Config:
+            SOFTWARE_PATH = ""
+            APP_NAME = "DefinSight.exe"
+            LOG_PATH = r"C:\Users\Public\Documents\Scanner\DefinSight\Log"
+            CALIBRATE_FILE = ""
+            MARKERS_FILE = ""
+            DATA_FILE = ""
+            LANG = "zh"
 
+        try:
+            import importlib
+            conf_lib = importlib.import_module(f'library.conf')
+            Config = getattr(conf_lib, 'Config')
+        except Exception:
+            pass
+
+        conf_soft_path = Confs(keys='SOFTWARE_PATH', values=str(Config.SOFTWARE_PATH), depict_key='软件目录',
+                               conf_type=1)
+        configs.append(conf_soft_path)
+
+        conf_soft_name = Confs(keys='APP_NAME', values=str(Config.APP_NAME), depict_key='应用程序名字',
+                               conf_type=1)
+        configs.append(conf_soft_name)
+
+        conf_soft_log = Confs(keys='LOG_PATH', values=str(Config.LOG_PATH), depict_key='软件日志目录',
+                              conf_type=1)
+        configs.append(conf_soft_log)
+
+        conf_soft_cal = Confs(keys='CALIBRATE_FILE', values=str(Config.CALIBRATE_FILE), depict_key='校准数据目录',
+                              conf_type=1)
+        configs.append(conf_soft_cal)
+
+        conf_soft_marker = Confs(keys='MARKERS_FILE', values=str(Config.MARKERS_FILE), depict_key='标记数据目录',
+                                 conf_type=1)
+        configs.append(conf_soft_marker)
+
+        conf_soft_data = Confs(keys='DATA_FILE', values=str(Config.DATA_FILE), depict_key='激光数据目录',
+                               conf_type=1)
+        configs.append(conf_soft_data)
+
+        conf_soft_lang = Confs(keys='LANG', values=str(Config.LANG), depict_key='语言环境',
+                               conf_type=1)
+        configs.append(conf_soft_lang)
+
+        SQLserver().insert(configs)
 
 def init_table():
     server = SQLserver()
@@ -168,4 +273,5 @@ def init_table():
 
 
 if __name__ == '__main__':
-    ConfParse().init_conf()
+    # ConfParse().init_conf()
+    FuncUpdate().update_handler()

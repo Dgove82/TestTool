@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout,
 from PyQt5.QtCore import Qt
 from src.frontend.components.tabs import MultTab
 from src.frontend.components import LogThread, LogEditBox, KeyWatchThread, CommonButton, ConfDialog, TitleLabel
-from src.frontend.public import app_root
+from src.frontend.public import app_root, control_func
 from pynput import keyboard
 import settings
 
@@ -26,7 +26,7 @@ class App(QMainWindow):
     def init_ui(self):
         # 设置主窗口的标题和初始大小
         self.setWindowTitle('测试小工具')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1000, 760)
 
         # 创建一个中心窗口
         central_widget = QWidget()
@@ -148,6 +148,15 @@ class App(QMainWindow):
 
     def normal_window(self):
         self.showNormal()
+
+    def keyPressEvent(self, event):
+        if event.key() != Qt.Key_Escape:
+            if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+                # 搜索快捷键
+                if control_func.root.index == control_func.root.parent().currentIndex():
+                    control_func.actions.action_search(1)
+            super().keyPressEvent(event)
+
 
 
 if __name__ == '__main__':

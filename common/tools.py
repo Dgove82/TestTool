@@ -13,6 +13,8 @@ from pynput import keyboard, mouse
 from PIL import ImageDraw, Image
 from src.utils.errors import FileExistError
 
+pyautogui.FAILSAFE = False
+
 
 class Singleton:
     """
@@ -344,9 +346,10 @@ class TimeTool:
 
 
 class LogTool:
-    def __init__(self, log_level="DEBUG", log_file="temp.log", project_root=''):
+    def __init__(self, log_level="DEBUG", log_file="temp.log", project_root='', is_debug=False):
         self.log_level = log_level
         self.log_file = log_file
+        self.is_debug = is_debug
         # 项目根目录
         self.project_root = project_root
         self.logger = logger

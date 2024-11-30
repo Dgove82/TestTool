@@ -167,6 +167,6 @@ class PosTab(QWidget):
                 if self.control is None:
                     self.control = child
                 out_rect = self.control.BoundingRectangle
-                if cur_rect.width() < out_rect.width() and cur_rect.height() < out_rect.height():
+                if cur_rect.width() <= out_rect.width() and cur_rect.height() <= out_rect.height():
                     self.control = child
             self.traverse_controls(child)

@@ -64,6 +64,8 @@ class FuncControl(Singleton):
         self.add_record_btn = None
         # 搜索结果展示列表
         self.search_result_list = None
+        # 预览窗口
+        self.pre_read_view = None
         # 执行流程展示列表
         self.process_list = None
         # 箭头添加

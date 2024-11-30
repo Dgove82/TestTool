@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt
 import settings
 from src.frontend.public import app_root, control_func
 from src.frontend.components.threads.thread_load import LoadThread
+from src.intermediary.data_load import FuncUpdate
 
 
 class LoadDialog(BaseDialog):
@@ -12,6 +13,7 @@ class LoadDialog(BaseDialog):
         self.out_layout = QVBoxLayout()
 
         self.info = TitleLabel()
+        self.update_btn = CommonButton('检查更新/拉取方法库')
         self.confirm = CommonButton('加载')
         self.cancel = CommonButton('关闭')
         self.load_task = LoadThread()
@@ -31,6 +33,7 @@ class LoadDialog(BaseDialog):
     def load_action(self):
         self.confirm.clicked.connect(self.action_load_func)
         self.cancel.clicked.connect(self.close_task)
+        self.update_btn.clicked.connect(self.action_action_update)
         self.load_task.finished.connect(self.task_finished)
 
     def body_ui(self):
@@ -41,6 +44,7 @@ class LoadDialog(BaseDialog):
         self.out_layout.addWidget(self.info)
 
     def bottom_ui(self):
+        self.out_layout.addWidget(self.update_btn)
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.confirm)
         button_layout.addWidget(self.cancel)
@@ -51,6 +55,13 @@ class LoadDialog(BaseDialog):
         self.info.setText('解析中')
         self.confirm.setDisabled(True)
         self.load_task.start()
+
+    def action_action_update(self):
+        handler = FuncUpdate()
+        handler.update_handler()
+        current = handler.versions.get("now", None)
+        history = handler.versions.get("history")
+        self.info.setText(f'当前版本{current}\n更新内容{history.get(current, None)}\n更新完成，请尝试加载')
 
     def task_finished(self):
         self.confirm.setDisabled(False)

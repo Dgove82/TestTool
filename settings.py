@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 import os
 import sys
@@ -7,6 +8,8 @@ import atexit
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String
+
+DEBUG = True
 
 if getattr(sys, 'frozen', False):
     # 如果是打包的可执行文件
@@ -48,6 +51,9 @@ class Files:
     # 记录流程
     PROCESS_DIR = FILES_PATH.joinpath('process')
 
+    # 方法库目录
+    LIBRARY_DIR = os.path.join(BASE_PATH, 'library')
+
     # 生成的py文件
     CASE_DIR = BASE_PATH.joinpath('library').joinpath('case')
 
@@ -66,8 +72,8 @@ LOG_FILE = f'{os.path.join(Files.LOG_DIR, TimeTool.get_format_day())}.log'
 
 
 class Log(LogTool):
-    def __init__(self, log_level="DEBUG", log_file=LOG_FILE, project_root=BASE_PATH):
-        super().__init__(log_level, log_file, project_root)
+    def __init__(self, log_level="DEBUG", log_file=LOG_FILE, project_root=BASE_PATH, is_debug=DEBUG):
+        super().__init__(log_level, log_file, project_root, is_debug)
 
 
 # 实例化工具
@@ -97,6 +103,15 @@ class Function(ModelBase):
     depict_func = Column(String)
     depict_params = Column(String)
     depict_return = Column(String)
+
+
+class UsageRate(ModelBase):
+    __tablename__ = 'usage_rate'
+
+    id = Column(Integer, primary_key=True)
+    func = Column(String, index=True)
+    use_count = Column(Integer)
+    is_top = Column(Integer)
 
 
 class Record(ModelBase):

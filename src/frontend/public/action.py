@@ -19,6 +19,7 @@ class FuncAction(Singleton):
 
     def load_action(self):
         self.control.search_result_list.itemDoubleClicked.connect(self.action_step_add)
+        self.control.search_result_list.itemSelectionChanged.connect(self.action_step_selected)
         self.control.process_list.itemDoubleClicked.connect(self.action_step_edit)
         self.control.search_result_list.customContextMenuRequested.connect(self.action_open_result_menu)
         self.control.process_list.customContextMenuRequested.connect(self.action_open_process_menu)
@@ -33,6 +34,13 @@ class FuncAction(Singleton):
         self.control.add_record_btn.clicked.connect(self.action_add_record)
 
         self.action_search()
+
+    def action_step_selected(self):
+        index = self.control.search_result_list.currentRow()
+        func = handler.search_record[index]
+        params = "\n".join([f"{index+1}.{item}" for index, item in enumerate(json.loads(func.depict_params).values())])
+        info = f'{func.depict_func}\n【参数】\n{params if params else "无"}'
+        self.control.pre_read_view.setText(info)
 
     def action_step_add(self):
         index = self.control.search_result_list.currentRow()
