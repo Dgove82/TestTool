@@ -11,7 +11,6 @@ import pyautogui
 from loguru import logger
 from pynput import keyboard, mouse
 from PIL import ImageDraw, Image
-from src.utils.errors import FileExistError
 
 pyautogui.FAILSAFE = False
 
@@ -44,7 +43,7 @@ class RecordTool(Singleton):
 
     def start_record_video(self, save_path: str, video_name='temp.mp4', timeout: int = None):
         if not os.path.exists(self.record_exe) or self.record_exe is None:
-            raise FileExistError(f'缺少依赖程序:<{self.record_exe}> 不存在>')
+            raise FileExistsError(f'缺少依赖程序:<{self.record_exe}> 不存在>')
 
         env = platform.system()
         cmd = None
@@ -311,7 +310,7 @@ class JsonFileTool(FileTool):
         with open(self.path, 'w', encoding='utf-8') as f:
             json.dump({}, f)
 
-    def read(self) -> dict:
+    def read(self) -> dict or list:
         self.exists()
         with open(self.path, "r", encoding='utf-8') as f:
             return json.load(f)

@@ -16,7 +16,6 @@ class Element(BasicMethod):
         :param value: 值
         :return:
         """
-        time.sleep(10)
         print(value, name)
 
     def set_expose(self, value='2', name='expoese'):

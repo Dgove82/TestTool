@@ -1,6 +1,7 @@
 """
 用于控件缓存: 运行中产生的值
 """
+import platform
 
 
 class CacheElemnt:
@@ -15,9 +16,17 @@ class CacheElemnt:
 
 
 class RunInfo:
+    System = None
+    Version = None
 
-    def __init__(self):
-        self.version = None
+    @staticmethod
+    def get_system_version():
+        if platform.system() == 'Windows':
+            version = int(platform.version().split('.')[-1])
+            if version >= 22000:
+                return "Windows 11"
+            else:
+                return "Windows 10"
 
 
 run_info = RunInfo()

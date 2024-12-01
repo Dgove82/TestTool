@@ -1,6 +1,6 @@
 from src.frontend.components.dialogs.dialog_base import BaseDialog
-from src.frontend.components.control import CommonButton
-from PyQt5.QtWidgets import *
+from src.frontend.components.control import CommonButton, CommonLineEdit, TitleLabel
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from src.intermediary.center import ControlCenter
 from PyQt5.QtCore import Qt
 from src.frontend.public import app_root
@@ -14,16 +14,21 @@ class DefineParamDialog(BaseDialog):
         self.dialog_layout = QVBoxLayout()
         # self.watch_thread = WatchThread()
         self.watch_thread = app_root.key_watch
-        self.info_label = QLabel('录制参数配置')
+        self.info_label = TitleLabel('录制参数配置')
         self.start_btn = CommonButton('开始录制')
 
         super().__init__(parent)
 
         self.deal_action()
+        self.setStyleSheet("""
+                                QDialog {
+                                    background-color: #E5EAF3; 
+                                }
+                            """ + self.styleSheet())
 
     def init_ui(self):
         self.setWindowTitle('键鼠录制')
-        self.setGeometry(100, 100, 250, 100)
+        self.setGeometry(100, 100, 320, 320)
         self.center_on_parent()
 
         self.info_label.setAlignment(Qt.AlignCenter)
@@ -38,8 +43,8 @@ class DefineParamDialog(BaseDialog):
         param_body_ui = QVBoxLayout()
 
         line_layout = QHBoxLayout()
-        line_label = QLabel('插入至第几步')
-        line_edit = QLineEdit(str(len(ControlCenter.steps) + 1))
+        line_label = TitleLabel('插入至第几步')
+        line_edit = CommonLineEdit(str(len(ControlCenter.steps) + 1))
 
         line_layout.addWidget(line_label)
         line_layout.addWidget(line_edit)
@@ -48,8 +53,8 @@ class DefineParamDialog(BaseDialog):
         self.form_data.update({'self_process_index': line_edit})
 
         name_layout = QHBoxLayout()
-        name_label = QLabel('为录制方法取名')
-        name_edit = QLineEdit()
+        name_label = TitleLabel('为录制方法取名')
+        name_edit = CommonLineEdit()
         name_edit.setPlaceholderText('自定义命名')
         name_layout.addWidget(name_label)
         name_layout.addWidget(name_edit)

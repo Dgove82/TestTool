@@ -12,8 +12,7 @@ __pycache__/
 
 deps/mac/*
 deps/win/*
-/files/images/*
-/files/videos/*
+/files/
 
 # Distribution / packaging
 .Python

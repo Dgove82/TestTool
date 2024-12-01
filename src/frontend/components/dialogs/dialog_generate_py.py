@@ -1,8 +1,8 @@
 import os
 
 from src.frontend.components.dialogs.dialog_base import BaseDialog
-from src.frontend.components.control import CommonButton, TitleLabel
-from PyQt5.QtWidgets import *
+from src.frontend.components.control import CommonButton, TitleLabel, CommonLineEdit, CodeEditBox
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QTextEdit, QFileDialog, QMessageBox
 from src.intermediary.center import handler
 from PyQt5.QtCore import Qt
 import re
@@ -16,14 +16,19 @@ class GeneratePyDialog(BaseDialog):
         self.edit_layout = QVBoxLayout()
         self.button_layout = QHBoxLayout()
 
-        self.label_info = TitleLabel('输入的值仅可为英文数字组合')
-        self.module_name = QLineEdit()
-        self.inner_text = QTextEdit()
+        self.label_info = TitleLabel('输入的值仅可为英文数字组合，如Case')
+        self.module_name = CommonLineEdit()
+        self.inner_text = CodeEditBox()
 
         self.confirm = CommonButton('确定')
         self.save_btn = CommonButton('另存为')
         self.cancel = CommonButton('关闭')
         super().__init__(parent)
+        self.setStyleSheet("""
+                            QDialog {
+                                background-color: #E5EAF3; 
+                            }
+                        """ + self.styleSheet())
 
     def init_ui(self):
         self.setWindowTitle('脚本编辑')
@@ -43,7 +48,7 @@ class GeneratePyDialog(BaseDialog):
         self.label_info.setAlignment(Qt.AlignCenter)
 
         param_layout = QHBoxLayout()
-        label = QLabel('模块名')
+        label = TitleLabel('模块名')
         label.setAlignment(Qt.AlignCenter)
         param_layout.addWidget(label)
         param_layout.addWidget(self.module_name)
@@ -89,10 +94,11 @@ class GeneratePyDialog(BaseDialog):
         file_path, _ = QFileDialog.getSaveFileName(self, "另存为脚本", str(settings.Files.CASE_DIR),
                                                    "PYTHON Files (*.py)", options=options)
         if file_path:
+            path_name = os.path.dirname(file_path)
             file_name = os.path.basename(file_path)
             if re.match(r'^[A-Za-z][_a-zA-Z0-9]*', file_name):
                 content = self.inner_text.toPlainText()
-                handler.script_save(content, file_path)
+                handler.script_save(content, str(os.path.join(path_name, f'test_{file_name}')))
             else:
                 QMessageBox.warning(self, '警告', '文件名只能包含英文字符，请重新输入')
                 self.action_save_file()

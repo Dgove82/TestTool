@@ -1,0 +1,21 @@
+[
+  {
+    "type": "loop",
+    "name": "loop",
+    "loop_steps": 1,
+    "loop_count": 1
+  },
+  {
+    "type": "define",
+    "name": "record",
+    "events": []
+  },
+  {
+    "type": "exist",
+    "func": "set_expose",
+    "params": "{\"value\": \"2\", \"name\": \"expoese\"}",
+    "depict_func": "【单功能】设置曝光",
+    "depict_params": "{\"name\": \"名称\", \"value\": \"值\"}",
+    "depict_return": "/"
+  }
+]

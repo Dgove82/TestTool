@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from src.frontend.components import CommonButton, TitleLabel, ClickLabel
+from src.frontend.components import (CommonButton, TitleLabel, ClickLabel, RecordListWidget, DropdownButton,
+                                     CommonLineEdit, CommonMenu, CommonInfoBox)
 from src.frontend.public import control_func
 from src.frontend.public.action import FuncAction
 
@@ -17,25 +18,28 @@ class FuncTab(QWidget):
 
         # 控件
         control_func.root = self
-        control_func.search_line = QLineEdit()
+        control_func.search_line = CommonLineEdit()
         control_func.search_btn = CommonButton("搜索")
-        control_func.add_record_btn = CommonButton('添加录制方法')
-        control_func.search_result_list = QListWidget()
-        control_func.pre_read_view = QLabel("请选择方法")
-        control_func.process_list = QListWidget()
+        # control_func.add_record_btn = CommonButton('添加录制方法')
+        control_func.add_special_func_btn = DropdownButton('添加特殊方法')
+        control_func.step_btn = DropdownButton('步骤')
+        control_func.process_btn = DropdownButton('流程')
+        control_func.common_result_list = RecordListWidget()
+        control_func.search_result_list = RecordListWidget()
+        control_func.pre_read_view = CommonInfoBox("请选择方法")
+        control_func.process_list = RecordListWidget()
         control_func.exec_btn = CommonButton('执行流程')
-        control_func.reset_btn = CommonButton('重置流程')
-        control_func.read_process_btn = CommonButton('读取流程')
-        control_func.save_process_btn = CommonButton('保存流程')
         control_func.arrow_btn = ClickLabel('➡')
         control_func.data_load_btn = CommonButton('重载方法')
         control_func.generate_py_btn = CommonButton('生成用例脚本')
-        control_func.right_menu = QMenu()
+        control_func.right_menu = CommonMenu()
 
         control_func.actions = FuncAction()
 
         self.init_ui()
         control_func.actions.load_action()
+
+        self.drag_action()
 
     def parse_layout(self):
         self.setLayout(self.tab_func_layout)
@@ -56,13 +60,15 @@ class FuncTab(QWidget):
 
     def search_action_ui(self):
         search_layout = QHBoxLayout()
-        search_label = QLabel('搜索:')
+        search_label = TitleLabel('搜索栏')
         search_layout.addWidget(search_label)
 
         control_func.search_line.setPlaceholderText('请输入方法关键字')
         search_layout.addWidget(control_func.search_line)
         search_layout.addWidget(control_func.search_btn)
-        search_layout.addWidget(control_func.add_record_btn)
+        # search_layout.addWidget(control_func.add_record_btn)
+        search_layout.addWidget(control_func.add_special_func_btn)
+        self.specatial_btn_menu_ui()
 
         self.search_result_layout.addLayout(search_layout)
 
@@ -75,48 +81,21 @@ class FuncTab(QWidget):
         # 搜索结果展示的布局
         result_layout = QVBoxLayout()
 
-        # info_label = QLabel()
-        # info_label.setText('搜索结果:')
+        common_label = TitleLabel('常用方法')
+        result_layout.addWidget(common_label)
+        control_func.common_result_list.setFixedHeight(120)
+        result_layout.addWidget(control_func.common_result_list)
+
         info_label = TitleLabel('搜索结果')
         result_layout.addWidget(info_label)
         result_layout.addWidget(control_func.search_result_list)
         result_layout.setSpacing(0)
 
-        control_func.search_result_list.setStyleSheet("""
-             QListWidget::item{
-                 padding: 5px; 
-             }
-             QListWidget::item:hover {
-                 background-color: #e5e7e9;
-                 color: black;  
-             }
-             QListWidget::item:selected {
-                background-color: #e5e7e9;  
-                color: black;  
-            }
-            QListWidget::item:selected:hover {
-                background-color: #e5e7e9; 
-                color: black;  
-            }
-             """)
         # control_func.search_result_list.viewport().setCursor(Qt.PointingHandCursor)
 
-        control_func.search_result_list.setContextMenuPolicy(Qt.CustomContextMenu)
-
         pre_read_layout = QVBoxLayout()
-        tip_label = TitleLabel('预览窗口')
-        pre_read_layout.addWidget(tip_label)
-        pre_read_layout.setStretchFactor(tip_label, 1)
 
-        control_func.pre_read_view.setStyleSheet("""
-            QLabel{
-                border: 1px solid grey;
-                background-color: white;
-                font-size: 16px;
-            }
-        """)
-        control_func.pre_read_view.setAlignment(Qt.AlignLeft)
-        control_func.pre_read_view.setWordWrap(True)
+        # control_func.pre_read_view.setWordWrap(True)
         pre_read_layout.addWidget(control_func.pre_read_view)
         pre_read_layout.setStretchFactor(control_func.pre_read_view, 100)
         pre_read_layout.setSpacing(0)
@@ -133,13 +112,6 @@ class FuncTab(QWidget):
         self.search_result_layout.addLayout(result_button_layout)
 
     def func_sperate_ui(self):
-        # framespate = QLabel('➡')
-        # framespate.setStyleSheet("""
-        #     QLabel{
-        #         color: #3498db;
-        #         font-size: 20px;
-        #     }
-        # """)
         self.search_process_layout.addWidget(control_func.arrow_btn)
 
     def func_process_ui(self):
@@ -147,9 +119,10 @@ class FuncTab(QWidget):
 
         process_btn_layout = QHBoxLayout()
         process_btn_layout.addWidget(control_func.exec_btn)
-        process_btn_layout.addWidget(control_func.reset_btn)
-        process_btn_layout.addWidget(control_func.save_process_btn)
-        process_btn_layout.addWidget(control_func.read_process_btn)
+        self.step_btn_menu_ui()
+        process_btn_layout.addWidget(control_func.step_btn)
+        process_btn_layout.addWidget(control_func.process_btn)
+        self.process_btn_menu_ui()
         process_btn_layout.setSpacing(5)
 
         process_layout.addLayout(process_btn_layout)
@@ -167,27 +140,51 @@ class FuncTab(QWidget):
         self.search_process_layout.addLayout(process_layout)
         self.search_process_layout.setStretchFactor(process_layout, 3)
 
-        control_func.process_list.setStyleSheet("""
-                                QListWidget::item{
-                                     padding: 5px;  
-                                 }
-                                 QListWidget::item:hover {
-                                     background-color: #e5e7e9;
-                                     color: black;  
-                                 }
-                                 QListWidget::item:selected {
-                                    background-color: #e5e7e9; 
-                                    color: black;   
-                                }
-                                QListWidget::item:selected:hover {
-                                    background-color: #e5e7e9; 
-                                    color: black;  
-                                }
-                                """)
         # control_func.process_list.viewport().setCursor(Qt.PointingHandCursor)
-
-        control_func.process_list.setContextMenuPolicy(Qt.CustomContextMenu)
 
         process_button_layout = QHBoxLayout()
         process_button_layout.addWidget(control_func.generate_py_btn)
         process_layout.addLayout(process_button_layout)
+
+    def specatial_btn_menu_ui(self):
+        control_func.add_special_func_btn.add_menu_action('添加录制方法')
+        control_func.add_special_func_btn.add_menu_action('添加循环方法')
+
+    def step_btn_menu_ui(self):
+        control_func.step_btn.add_menu_action('导入')
+        control_func.step_btn.add_menu_action('导出')
+
+    def process_btn_menu_ui(self):
+        control_func.process_btn.add_menu_action('重置')
+        control_func.process_btn.add_menu_action('导入')
+        control_func.process_btn.add_menu_action('导出')
+
+    def drag_action(self):
+        control_func.common_result_list.setDragDropMode(QListWidget.DragOnly)
+        control_func.search_result_list.setDragDropMode(QListWidget.DragOnly)
+        control_func.process_list.setDragDropMode(QListWidget.DragDrop)
+
+        control_func.common_result_list.dragEnterEvent = self.dragEnterEvent
+        control_func.search_result_list.dragEnterEvent = self.dragEnterEvent
+        control_func.process_list.dragEnterEvent = self.dragEnterEvent
+        control_func.common_result_list.dropEvent = self.dropEvent
+        control_func.search_result_list.dropEvent = self.dropEvent
+        control_func.process_list.dropEvent = self.dropEvent
+
+    def dragEnterEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.source() == control_func.common_result_list or event.source() == control_func.search_result_list:
+            target_index = control_func.process_list.indexAt(event.pos())
+            if target_index.isValid():
+                control_func.actions.action_step_add(target_index.row() + 1)
+            else:
+                control_func.actions.action_step_add()
+        elif event.source() == control_func.process_list:
+            source_index = control_func.process_list.currentRow()
+            target_index = control_func.process_list.indexAt(event.pos())
+            if target_index.isValid():
+                control_func.actions.action_step_update_order(source_index, target_index.row())
+        else:
+            event.ignore()

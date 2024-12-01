@@ -126,7 +126,6 @@ class FuncParse:
 
 
 class FuncUpdate:
-    RESOURCE_NET = r'/Volumes/A-Dgove/Code/Python-Projects/TestTool/library'
     VERSIONS = 'versions.json'
 
     def __init__(self):
@@ -141,7 +140,10 @@ class FuncUpdate:
         return element_lib.version
 
     def get_net_versions(self):
-        with open(os.path.join(FuncUpdate.RESOURCE_NET, FuncUpdate.VERSIONS), 'r', encoding='utf-8') as f:
+        net_path = os.path.join(settings.Files.LIBRARY_ORIGIN, FuncUpdate.VERSIONS)
+        if not os.path.exists(net_path):
+            raise FileNotFoundError('路径不存在:{}'.format(net_path))
+        with open(os.path.join(settings.Files.LIBRARY_ORIGIN, FuncUpdate.VERSIONS), 'r', encoding='utf-8') as f:
             self.versions = json.load(f)
 
     def clear_directory(self, directory):
@@ -164,7 +166,7 @@ class FuncUpdate:
         settings.log.info('清理当前方法库')
         self.clear_directory(current_library)
         settings.log.info('开始拉取最新方法库')
-        shutil.unpack_archive(os.path.join(FuncUpdate.RESOURCE_NET, file), current_library)
+        shutil.unpack_archive(os.path.join(settings.Files.LIBRARY_ORIGIN, file), current_library)
         settings.log.success('方法库拉取完毕')
 
     def update_handler(self):
@@ -211,6 +213,10 @@ class ConfParse:
                           conf_type=0)
         configs.append(conf_case)
 
+        conf_download = Confs(keys='LIBRARY_ORIGIN', values=str(settings.Files.LIBRARY_ORIGIN), depict_key='方法库下载源',
+                              conf_type=0)
+        configs.append(conf_download)
+
         conf_library = Confs(keys='LIBRARY_PATH', values=str(settings.Files.LIBRARY_PATH), depict_key='方法库文件',
                              conf_type=0)
         configs.append(conf_library)
@@ -220,21 +226,22 @@ class ConfParse:
     @staticmethod
     def init_definesight_for_conf():
         configs = []
+
         class Config:
             SOFTWARE_PATH = ""
-            APP_NAME = "DefinSight.exe"
-            LOG_PATH = r"C:\Users\Public\Documents\Scanner\DefinSight\Log"
+            APP_NAME = "App.exe"
+            LOG_PATH = r"C:\Users\Public\Documents\Scanner\App\Log"
             CALIBRATE_FILE = ""
             MARKERS_FILE = ""
             DATA_FILE = ""
-            LANG = "zh"
+            LANG = "简体中文"
 
         try:
             import importlib
             conf_lib = importlib.import_module(f'library.conf')
             Config = getattr(conf_lib, 'Config')
-        except Exception:
-            pass
+        except Exception as e:
+            settings.log.warning(f'library模块不存在采用默认加载: {e}')
 
         conf_soft_path = Confs(keys='SOFTWARE_PATH', values=str(Config.SOFTWARE_PATH), depict_key='软件目录',
                                conf_type=1)
@@ -265,6 +272,7 @@ class ConfParse:
         configs.append(conf_soft_lang)
 
         SQLserver().insert(configs)
+
 
 def init_table():
     server = SQLserver()

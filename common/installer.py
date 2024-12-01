@@ -9,6 +9,30 @@ import shutil
 remote_zip = r'C:\Users\dgove\Desktop\Env.zip'
 
 
+def recursion_decode_path(path: str):
+    """
+    路径遍历
+    """
+    root = path
+    if os.path.isdir(path):
+        for p in os.listdir(path):
+            name = decode_name(p)
+            os.rename(os.path.join(path, p), os.path.join(root, name))
+            recursion_decode_path(os.path.join(root, name))
+    else:
+        p = os.path.basename(path)
+        d = os.path.dirname(path)
+        name = decode_name(p)
+        os.rename(path, os.path.join(d, name))
+
+
+def decode_name(name: str):
+    try:
+        name = name.encode('cp437').decode('utf-8')
+    finally:
+        return name
+
+
 def unzip_with_progress(zip_path, extract_folder):
     os.makedirs(extract_folder, exist_ok=True)
 
@@ -27,6 +51,9 @@ def unzip_with_progress(zip_path, extract_folder):
             # 更新进度
             processed_files += 1
             print(f"\rExtracting: {file} ({processed_files}/{total_files})")
+
+    # 文件名乱码检查
+    recursion_decode_path(extract_folder)
 
 
 def zip_folder(in_folder, out_zip):
@@ -69,6 +96,30 @@ def update_path(new_path):
     # 关闭注册表键
     winreg.CloseKey(registry_key)
     print(f'{new_path} 环境变量配置完毕')
+
+
+def add_variable(k, v):
+    # 请求管理员权限
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+        sys.exit()
+
+    # 打开环境变量注册表键
+    registry_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                  'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 0,
+                                  winreg.KEY_ALL_ACCESS)
+
+    try:
+        # 设置新的 JAVA_HOME 值
+        winreg.SetValueEx(registry_key, k, 0, winreg.REG_EXPAND_SZ, v)
+        # 确保所有进程都能看到这个变量
+        winreg.FlushKey(registry_key)
+        print(f'{k} 环境变量配置完毕: {v}')
+    except Exception as e:
+        print(f'无法设置 {k} 环境变量: {e}')
+    finally:
+        # 关闭注册表键
+        winreg.CloseKey(registry_key)
 
 
 def handler_zip():
@@ -129,6 +180,7 @@ def init_depends():
         update_path(r'C:\Env\Git\cmd')
         update_path(r'C:\Env\Java\jdk-21\bin')
         update_path(r'C:\Env\Allure\bin')
+        add_variable('Java_Home', r'C:\Env\Java\jdk-21')
 
         install_for_python_package()
         print('重启电脑后系统环境变量生效')

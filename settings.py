@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 import os
 import sys
@@ -56,6 +55,9 @@ class Files:
 
     # 生成的py文件
     CASE_DIR = BASE_PATH.joinpath('library').joinpath('case')
+
+    # 方法库下载源
+    LIBRARY_ORIGIN = r'\\127.0.0.1\Dgove\library'
 
     # 方法库
     LIBRARY_PATH = os.path.join(BASE_PATH, 'library/operation/element.py')

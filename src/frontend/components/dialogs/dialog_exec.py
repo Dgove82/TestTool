@@ -1,5 +1,5 @@
 from src.frontend.components.dialogs.dialog_base import BaseDialog
-from src.frontend.components.control import CommonButton, TitleLabel
+from src.frontend.components.control import CommonButton, TitleLabel, CommonLineEdit
 from PyQt5.QtWidgets import *
 from src.intermediary.center import ControlCenter
 from src.frontend.public import app_root
@@ -22,10 +22,15 @@ class ExecDialog(BaseDialog):
 
         self.form = []
         super().__init__(parent)
+        self.setStyleSheet("""
+                                QDialog {
+                                    background-color: #E5EAF3; 
+                                }
+                            """ + self.styleSheet())
 
     def init_ui(self):
         self.setWindowTitle('流程')
-        self.setGeometry(100, 100, 200, 100)
+        self.setGeometry(100, 100, 325, 300)
         self.center_on_parent()
 
         self.setLayout(self.dialog_layout)
@@ -50,8 +55,8 @@ class ExecDialog(BaseDialog):
 
     def add_item(self, label, val):
         line = QHBoxLayout()
-        param = QLabel(label)
-        edit = QLineEdit(val)
+        param = TitleLabel(label)
+        edit = CommonLineEdit(val)
         line.addWidget(param)
         line.addWidget(edit)
         self.form.append(edit)

@@ -28,6 +28,7 @@ class PosTab(QWidget):
         self.tree_widget = NoAutoScrollTreeWidget()
         self.table_view = CssTableView()
         self.table_model = QStandardItemModel()
+        self.pos_label = TitleLabel("鼠标坐标: (0, 0)")
 
         self.init_ui()
 
@@ -61,6 +62,8 @@ class PosTab(QWidget):
 
     def load_body_right_ui(self):
         right_layout = QVBoxLayout()
+        right_layout.addWidget(self.pos_label)
+
         # 设置列宽，第一列固定宽度，第二列自动填充
         self.table_model.setHorizontalHeaderLabels(['属性名', '属性值'])
 
@@ -104,6 +107,9 @@ class PosTab(QWidget):
     def action_out_result(self, key):
         if self.parent().currentIndex() == self.index:
             if key.key == keyboard.Key.ctrl_l:
+                pos = pyautogui.position()
+                self.position = (pos.x, pos.y)
+                self.pos_label.setText(f'鼠标坐标: {self.position}')
                 if settings.RUN_ENV == 'Darwin':
                     settings.log.warning('mac不支持')
                     return
@@ -113,8 +119,6 @@ class PosTab(QWidget):
         self.tree_widget.clear()
         self.parents = []
 
-        pos = pyautogui.position()
-        self.position = (pos.x, pos.y)
         self.out_result()
         self.load_parents(self.control)
         self.create_tree_item(self.tree_widget, len(self.parents) - 1)

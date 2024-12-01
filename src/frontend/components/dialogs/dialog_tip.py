@@ -10,6 +10,11 @@ class DialogTip(BaseDialog):
         self.confirm = CommonButton('确定')
         self.info = info
         super().__init__(*args, **kwargs)
+        self.setStyleSheet("""
+                                QDialog {
+                                    background-color: #E5EAF3; 
+                                }
+                            """ + self.styleSheet())
 
     def init_ui(self):
         self.setWindowTitle('提示')

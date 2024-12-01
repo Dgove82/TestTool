@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout,
-                             QWidget, QLabel, QApplication, QHBoxLayout)
+                             QWidget, QApplication, QAction)
 from PyQt5.QtCore import Qt
 from src.frontend.components.tabs import MultTab
 from src.frontend.components import LogThread, LogEditBox, KeyWatchThread, CommonButton, ConfDialog, TitleLabel
@@ -25,8 +25,8 @@ class App(QMainWindow):
 
     def init_ui(self):
         # 设置主窗口的标题和初始大小
-        self.setWindowTitle('测试小工具')
-        self.setGeometry(100, 100, 1000, 760)
+        self.setWindowTitle('DS-T')
+        self.setGeometry(100, 100, 1000, 1000)
 
         # 创建一个中心窗口
         central_widget = QWidget()
@@ -34,48 +34,57 @@ class App(QMainWindow):
 
         # 设置垂直布局
         central_widget.setLayout(self.outermost_layout)
+        self.outermost_layout.setContentsMargins(0, 0, 0, 0)
+        self.outermost_layout.setSpacing(5)
 
         self.log_record_start()
         self.key_watch_start()
-        self.header_ui()
+        self.top_menu_ui()
         self.tabs_ui()
         self.log_info_ui()
         self.load_actions()
+        self.setStyleSheet("""
+                    QMainWindow {
+                        background-color: #E5EAF3; 
+                    }
+                """ + self.styleSheet())
 
     def load_actions(self):
-        app_root.conf_btn.clicked.connect(self.action_conf_set)
+        app_root.conf_act.triggered.connect(self.action_conf_set)
 
-    def header_ui(self):
-        # 顶部
-        top_layout = QHBoxLayout()
-        app_root.conf_btn = CommonButton("⚙")
-        app_root.conf_btn.setStyleSheet("""
-                    QPushButton{
-                        background-color: transparent;
-                        font: bold 20pt;
-                        color: #839192;
-                    }
-                """)
+    def top_menu_ui(self):
+        # 创建一个菜单栏
+        menubar = self.menuBar()
 
-        top_layout.addWidget(app_root.conf_btn)
-        top_layout.setStretchFactor(app_root.conf_btn, 1)
-
-        # 创建并添加大标题
-        title_label = QLabel('测试小工具', self)
-        title_label.setStyleSheet("""
-                    QLabel{
-                        font: bold 20pt;
-                        letter-spacing: 10px;
-                    }
-                """)
-        title_label.setAlignment(Qt.AlignCenter)
-        top_layout.addWidget(title_label)
-        top_layout.setStretchFactor(title_label, 10)
-        top_layout.setSpacing(0)
-        top_layout.addStretch(1)
-        self.outermost_layout.addLayout(top_layout)
-
-        self.outermost_layout.setStretchFactor(top_layout, 1)
+        # 添加菜单
+        conf_menu = menubar.addMenu('设置')
+        about_menu = menubar.addMenu('关于')
+        self.setStyleSheet("""
+                                QMenuBar {
+                                    color: #606266;
+                                    background-color: #DCDCDC;
+                                }
+                                QMenu{
+                                    border: none;
+                                    background-color: #FFF;
+                                    color: #606266;
+                                }
+                                QMenu::item {
+                                    padding: 4px;
+                                    border: none;
+                                    color: #606266;
+                                    background-color: transparent;
+                                }
+                                QMenu::item:selected {
+                                    color: #409EFF;
+                                    background-color: #ECF5FF;
+                                }
+                                """)
+        # 添加一个菜单项
+        app_root.conf_act = QAction('程序配置')
+        conf_menu.addAction(app_root.conf_act)
+        app_root.update_info_act = QAction('更新日志')
+        about_menu.addAction(app_root.update_info_act)
 
     def tabs_ui(self):
         # 创建分页
@@ -156,7 +165,6 @@ class App(QMainWindow):
                 if control_func.root.index == control_func.root.parent().currentIndex():
                     control_func.actions.action_search(1)
             super().keyPressEvent(event)
-
 
 
 if __name__ == '__main__':

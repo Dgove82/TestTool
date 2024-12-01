@@ -1,5 +1,5 @@
 from src.frontend.components.dialogs.dialog_base import BaseDialog
-from src.frontend.components.control import CommonButton, TitleLabel
+from src.frontend.components.control import CommonButton, TitleLabel, CommonLineEdit, CommonScrollArea
 from PyQt5.QtWidgets import *
 import settings
 from src.intermediary.center import handler
@@ -9,7 +9,7 @@ from src.frontend.public import app_root
 class ConfDialog(BaseDialog):
     def __init__(self, parent=None):
         self.out_layout = QVBoxLayout()
-        self.scroll_area = QScrollArea()
+        self.scroll_area = CommonScrollArea()
         self.container_widget = QWidget()
         self.container_layout = QVBoxLayout(self.container_widget)
 
@@ -26,41 +26,6 @@ class ConfDialog(BaseDialog):
 
         # 创建滚动区域
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
-                    QScrollArea {
-                        background-color: transparent;
-                    }
-                    QScrollArea > QWidget > QWidget {
-                        background-color: white;
-                    }
-                    QScrollBar:vertical {
-                        background: #e7e8e9;
-                        width: 12px;
-                        margin: 0px 0px 0px 0px;
-                    }
-                    QScrollBar::handle:vertical {
-                        background: #c2c3c4;
-                        min-height: 20px;
-                    }
-                    QScrollBar::add-line:vertical {
-                        background: #c2c3c4;
-                        height: 0px;
-                        subcontrol-position: bottom;
-                        subcontrol-origin: margin;
-                    }
-                    QScrollBar::sub-line:vertical {
-                        background: #c2c3c4;
-                        height: 0px;
-                        subcontrol-position: top;
-                        subcontrol-origin: margin;
-                    }
-                    QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
-                        background: none;
-                    }
-                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                        background: none;
-                    }
-                """)
 
         self.scroll_area.setWidget(self.container_widget)
 
@@ -94,6 +59,14 @@ class ConfDialog(BaseDialog):
                 c.values = temp_val
                 if c.conf_type == 0:
                     setattr(settings.Files, c.keys, temp_val)
+                elif c.conf_type == 1:
+                    try:
+                        import importlib
+                        conf_lib = importlib.import_module(f'library.conf')
+                        Config = getattr(conf_lib, 'Config')
+                        setattr(Config, c.keys, temp_val)
+                    except Exception as e:
+                        app_root.ui_log.info(f'{e}')
                 handler.update_instance(c)
         self.close_dialog()
 
@@ -112,21 +85,16 @@ class ConfDialog(BaseDialog):
 
         for c in conf_settings:
             line = QHBoxLayout()
-            t = QLabel(c.depict_key)
-            t.setStyleSheet("background-color: transparent;")
-            e = QLineEdit(c.values)
-
+            t = TitleLabel(c.depict_key)
+            e = CommonLineEdit(c.values)
+            e.modified_stylesheet = "QLineEdit { background-color: #fcf3cf; }"
             e.setProperty('origin', c)
             self.form.append(e)
-            e.modified_stylesheet = "QLineEdit { background-color: #fcf3cf; }"
             e.textChanged.connect(self.on_line_edit_text_changed)
-            if c.keys == 'LIBRARY_PATH':
-                e.setDisabled(True)
-                e.setStyleSheet("color: grey;")
             line.addWidget(t)
             line.addWidget(e)
-            line.setStretchFactor(t, 1)
-            line.setStretchFactor(e, 5)
+            line.setStretchFactor(t, 2)
+            line.setStretchFactor(e, 8)
             group_layout.addLayout(line)
 
         setting_layout.addWidget(group)
@@ -210,4 +178,4 @@ class ConfDialog(BaseDialog):
         sender = self.sender()
         if sender:
             # 设置修改后的样式
-            sender.setStyleSheet(sender.modified_stylesheet)
+            sender.setStyleSheet(sender.styleSheet() + sender.modified_stylesheet)

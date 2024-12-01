@@ -8,12 +8,12 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('./library', 'library'), ('./deps', 'deps')],
-    hiddenimports=[],
+    datas=[('./deps', 'deps'), ('./common', 'common')],
+    hiddenimports=['allure', 'xml.etree.ElementTree'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['library'],
+    excludes=['./library'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -37,6 +37,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    uac_admin=True,
 )
 coll = COLLECT(
     exe,
@@ -47,10 +48,4 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name='main',
-)
-app = BUNDLE(
-    coll,
-    name='main.app',
-    icon=None,
-    bundle_identifier=None,
 )
