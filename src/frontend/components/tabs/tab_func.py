@@ -10,6 +10,7 @@ class FuncTab(QWidget):
     def __init__(self, index, parent=None):
         super().__init__(parent)
         self.index = index
+        self.name = "组装车间"
         # 布局
         self.tab_func_layout = QVBoxLayout()
         self.search_process_layout = QHBoxLayout()

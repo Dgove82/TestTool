@@ -337,7 +337,7 @@ class TimeTool:
 
     @staticmethod
     def get_format_time():
-        return time.strftime("%Y-%m-%d_%H:%M:%S", TimeTool.now())
+        return time.strftime("%Y-%m-%d_%H-%M-%S", TimeTool.now())
 
     @staticmethod
     def get_format_day():

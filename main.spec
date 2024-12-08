@@ -38,6 +38,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     uac_admin=True,
+    icon='./deps/assets/icon.png'
 )
 coll = COLLECT(
     exe,
@@ -49,3 +50,11 @@ coll = COLLECT(
     upx_exclude=[],
     name='main',
 )
+
+app = BUNDLE(
+    coll,
+    name='DS-T.app',
+    icon='./deps/assets/icon.png',
+    bundle_identifier=None,
+)
+

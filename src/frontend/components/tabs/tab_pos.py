@@ -22,6 +22,7 @@ class PosTab(QWidget):
     def __init__(self, index, parent=None):
         super().__init__(parent)
         self.index = index
+        self.name = "控件定位"
 
         self.out_layout = QHBoxLayout()
 

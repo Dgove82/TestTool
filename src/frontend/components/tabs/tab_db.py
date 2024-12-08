@@ -17,6 +17,7 @@ class DBTab(QWidget):
     def __init__(self, index, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index = index
+        self.name = "设备配置"
 
         self.out_layout = QVBoxLayout()
 

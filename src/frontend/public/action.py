@@ -1,4 +1,5 @@
 import json
+import re
 import traceback
 
 import settings
@@ -199,20 +200,28 @@ class FuncAction(Singleton):
 
     def action_edit_step(self):
         if self.app.dialog:
+            means_dict = {"loop_count": "循环次数", "loop_steps": "循环步骤数", "name": "方法名"}
             form_data: dict = self.app.dialog.make_data()
             to_index = form_data.pop('self_process_update_index')
 
             func = ControlCenter.steps[ControlCenter.checked]
             temp = {}
+            f_type = func.get('type')
             for key, value in form_data.items():
-                if func.get('type') == 'exist':
+                if f_type == 'exist':
                     temp.update({key: value})
-                else:
+                elif f_type == 'define':
                     self.app.ui_log.info(f'录制方法名<{func.get("name")}>更新为<{value}>')
                     func[key] = value
                     self.control.process_list.currentItem().setText(f'{ControlCenter.checked + 1}.{value}')
-
-            if func.get('type') == 'exist':
+                elif f_type == 'loop':
+                    value = self.check_edit_for_int(value) if re.match(r'\d+', value) else value
+                    if value != func[key]:
+                        self.app.ui_log.info(f'循环方法<{func.get("name")}>{means_dict.get(key, None)}值更新为<{value}>')
+                        func[key] = value
+                        if key == "name":
+                            self.control.process_list.currentItem().setText(f'{ControlCenter.checked + 1}.{value}')
+            if func.get('type') == 'exist' and func["params"] != json.dumps(temp):
                 func["params"] = json.dumps(temp)
                 self.app.ui_log.info(f'<{func.get("depict_func")}>参数更新成功')
 

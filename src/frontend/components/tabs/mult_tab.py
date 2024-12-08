@@ -1,8 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout
-from src.frontend.components.tabs.tab_func import FuncTab
-from src.frontend.components.tabs.tab_watch import WatchTab
-from src.frontend.components.tabs.tab_pos import PosTab
-from src.frontend.components.tabs.tab_db import DBTab
+from src.frontend.components.tabs import register_tabs
 from src.frontend.public import app_root
 
 
@@ -20,16 +17,12 @@ class MultTab(QWidget):
         self.out_layout.setContentsMargins(0, 0, 0, 0)
         self.out_layout.addWidget(self.mult_tab)
         self.load_style()
+        self.load_tabs()
 
-        tab_func = FuncTab(0)
-        tab_watch = WatchTab(1)
-        tab_pos = PosTab(2)
-        tab_db = DBTab(3)
-
-        self.mult_tab.addTab(tab_func, '组装车间')
-        self.mult_tab.addTab(tab_watch, '操作回溯')
-        self.mult_tab.addTab(tab_pos, '控件定位')
-        self.mult_tab.addTab(tab_db, '设备配置')
+    def load_tabs(self):
+        for index, obj in enumerate(getattr(register_tabs, 'load_order')):
+            tab = obj(index)
+            self.mult_tab.addTab(tab, tab.name)
 
     def load_style(self):
         self.mult_tab.setStyleSheet("""

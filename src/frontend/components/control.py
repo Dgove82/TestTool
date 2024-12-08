@@ -377,7 +377,7 @@ class DropdownButton(CommonButton):
         self.menu = CommonMenu(self)
         self.setMenu(self.menu)
         # self.menu.triggered.connect(self.onMenuTriggered)
-        self.set_arrow_icon(f'{os.path.join(settings.DEPS_PROGRAM, "icons/arrow.png")}')
+        self.set_arrow_icon(f'{os.path.join(settings.DEPS_PROGRAM, "assets/arrow.png")}')
         self.setStyleSheet(self.styleSheet() + "QPushButton::menu-indicator { image: none; }")
 
     def resizeEvent(self, event):

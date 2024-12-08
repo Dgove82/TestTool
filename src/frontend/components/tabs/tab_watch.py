@@ -75,6 +75,7 @@ class WatchTab(QWidget):
     def __init__(self, index, parent=None):
         super().__init__(parent)
         self.index = index
+        self.name = '操作回溯'
 
         self.init_ui()
 

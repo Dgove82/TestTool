@@ -1,7 +1,9 @@
+import os
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout,
                              QWidget, QApplication, QAction)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from src.frontend.components.tabs import MultTab
 from src.frontend.components import LogThread, LogEditBox, KeyWatchThread, CommonButton, ConfDialog, TitleLabel
 from src.frontend.public import app_root, control_func
@@ -26,6 +28,7 @@ class App(QMainWindow):
     def init_ui(self):
         # 设置主窗口的标题和初始大小
         self.setWindowTitle('DS-T')
+        self.setWindowIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets', 'icon.png')))
         self.setGeometry(100, 100, 1000, 1000)
 
         # 创建一个中心窗口
