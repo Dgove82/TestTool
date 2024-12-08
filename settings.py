@@ -6,7 +6,7 @@ from common.tools import FileTool, LogTool, TimeTool, RecordTool, WatchTool
 import atexit
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Float, JSON
 
 DEBUG = True
 
@@ -41,6 +41,9 @@ class Files:
     # 存图目录
     IMAGE_DIR = FILES_PATH.joinpath('images')
 
+    # 操作记录图
+    IMAGE_EVENT_DIR = FILES_PATH.joinpath('images').joinpath('events')
+
     # 存视频目录
     VIDEO_DIR = FILES_PATH.joinpath('videos')
 
@@ -63,13 +66,6 @@ class Files:
     LIBRARY_PATH = os.path.join(BASE_PATH, 'library/operation/element.py')
 
 
-FileTool.check_path(Files.FILES_PATH)
-FileTool.check_path(Files.LOG_DIR)
-FileTool.check_path(Files.IMAGE_DIR)
-FileTool.check_path(Files.VIDEO_DIR)
-FileTool.check_path(Files.PROCESS_DIR)
-FileTool.check_path(Files.CASE_DIR)
-
 LOG_FILE = f'{os.path.join(Files.LOG_DIR, TimeTool.get_format_day())}.log'
 
 
@@ -77,11 +73,6 @@ class Log(LogTool):
     def __init__(self, log_level="DEBUG", log_file=LOG_FILE, project_root=BASE_PATH, is_debug=DEBUG):
         super().__init__(log_level, log_file, project_root, is_debug)
 
-
-# 实例化工具
-log = Log()
-record = RecordTool(TOOL_FFMPEG)
-watch = WatchTool()
 
 # 创建基类
 Base = declarative_base()
@@ -122,7 +113,15 @@ class Record(ModelBase):
     id = Column(Integer, primary_key=True)
     event = Column(String)
     image_name = Column(String)
-    record_time = Column(String)
+    record_time = Column(Float)
+
+
+class EventOperation(ModelBase):
+    __tablename__ = 'event_operation'
+    id = Column(Integer, primary_key=True)
+    events = Column(JSON)
+    start_time = Column(Float)
+    end_time = Column(Float)
 
 
 class Confs(ModelBase):
@@ -134,6 +133,9 @@ class Confs(ModelBase):
     depict_key = Column(String)
     conf_type = Column(Integer)
 
+
+FileTool.check_path(Files.LOG_DIR)
+log = Log()
 
 # 创建 SQLite 数据库引擎
 engine = create_engine(f'sqlite:///{Files.DB_PATH}')
@@ -156,13 +158,23 @@ try:
     settings_conf = session.query(Confs).filter_by(conf_type=0).all()
     for conf in settings_conf:
         setattr(Files, str(conf.keys), conf.values)
-
-
 except Exception as e:
     log.warning(f"查询数据库时发生错误: {e}")
 finally:
     # 关闭会话
     session.close()
+
+FileTool.check_path(Files.FILES_PATH)
+FileTool.check_path(Files.IMAGE_DIR)
+FileTool.check_path(Files.IMAGE_EVENT_DIR)
+FileTool.check_path(Files.VIDEO_DIR)
+FileTool.check_path(Files.PROCESS_DIR)
+FileTool.check_path(Files.CASE_DIR)
+
+
+# 实例化工具
+record = RecordTool(TOOL_FFMPEG)
+watch = WatchTool()
 
 # 注册结束事件
 atexit.register(record.stop_record_video)

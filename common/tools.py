@@ -1,16 +1,18 @@
 import hashlib
+import inspect
 import json
+import os
 import os.path
+import platform
 import re
 import subprocess
-import time
 import sys
-import inspect
-import platform
+import time
+
 import pyautogui
+from PIL import ImageDraw, Image
 from loguru import logger
 from pynput import keyboard, mouse
-from PIL import ImageDraw, Image
 
 pyautogui.FAILSAFE = False
 
@@ -96,7 +98,7 @@ class RecordTool(Singleton):
         draw.ellipse((center_x - 2, center_y - 2, center_x + 2, center_y + 2),
                      outline=color, width=4)
 
-    def img_record(self, save_path: str, save_name: str, rectangle: int = 50, full: bool = False):
+    def img_record(self, save_path: str, save_name=None, rectangle: int = 50, full: bool = False):
         mouse_position = pyautogui.position()
         center_x = int(mouse_position.x)
         center_y = int(mouse_position.y)
@@ -111,11 +113,12 @@ class RecordTool(Singleton):
             top = center_y - height // 2
             screenshot = pyautogui.screenshot(region=(left, top, width, height))
             self.add_label_in_image(screenshot, rectangle, rectangle)
-
-        # file_name = ContentTool(screenshot.tobytes()).byte_decode_md5()
+        if save_name is None:
+            save_name = ContentTool(screenshot.tobytes()).byte_decode_md5()
 
         # 将截图保存为图片文件
         screenshot.save(os.path.join(save_path, f'{save_name}.png'))
+        return save_name
 
 
 class WatchTool:
@@ -342,6 +345,10 @@ class TimeTool:
     @staticmethod
     def get_format_day():
         return time.strftime("%Y-%m-%d", TimeTool.now())
+
+    @staticmethod
+    def strftime_for_format(timestamp, format_type='%Y-%m-%d %H:%M:%S'):
+        return time.strftime(format_type, time.localtime(timestamp))
 
 
 class LogTool:

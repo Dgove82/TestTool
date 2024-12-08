@@ -1,74 +1,68 @@
+import json
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QScrollArea, QPushButton, QSpacerItem, QSizePolicy, QFrame, QDialog,
-    QGraphicsView, QGraphicsScene
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QScrollArea
 )
-from PyQt5.QtCore import Qt, QDateTime, QRectF
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtCore import Qt, QDateTime
+from PyQt5.QtGui import QPixmap, QIcon
 import settings
 import os
-from src.frontend.components import ClickLabel
+from src.frontend.public import app_root
+from src.frontend.components import ClickLabel, TitleLabel, CommonTimeEdit, CommonButton, CommonLabel
+from src.frontend.components import ImageViewerDialog
+from src.intermediary.center import SQLserver
+from common.tools import TimeTool
+from sqlalchemy import or_, and_
 
 
-def get_records():
-    # 这里应该是从数据库获取记录的逻辑
-    # 下面是示例数据
-    return [
-        settings.Record(id=1, event='Click', image_name='img.png', record_time='2024-11-17 10:00:00'),
-        settings.Record(id=2, event='Click', image_name='img_1.png', record_time='2024-11-17 10:00:00'),
-        settings.Record(id=3, event='Click', image_name='img_1.png', record_time='2024-11-17 10:00:00'),
-        settings.Record(id=4, event='Click', image_name='img_1.png', record_time='2024-11-17 10:00:00'),
-        settings.Record(id=5, event='Click', image_name='img_1.png', record_time='2024-11-17 10:00:00'),
-        settings.Record(id=6, event='Click', image_name='img_1.png', record_time='2024-11-17 10:00:00'),
-        # 更多记录...
-    ]
+class RecordHandler(SQLserver):
 
+    def get_records(self, count=10):
+        session = self.get_db()
+        records = session.query(settings.Record).order_by(settings.Record.record_time.desc()).limit(count).all()
+        session.close()
+        return list(reversed(records))
 
-class ImageViewer(QDialog):
-    def __init__(self, pixmap, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("查看图片")
-        self.setModal(True)
-        self.pixmap_item = None
-        self.setGeometry(100, 100, 300, 300)
-        self.init_ui(pixmap)
+    def select_time_range(self, start, end):
+        session = self.get_db()
+        records = session.query(settings.Record).order_by(settings.Record.record_time.desc()).filter(
+            settings.Record.record_time.between(start, end)).all()
+        session.close()
+        return list(reversed(records))
 
-    def init_ui(self, pixmap):
-        self.graphics_view = QGraphicsView(self)
-        self.graphics_view.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.graphics_view.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
-        self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.graphics_view.setDragMode(QGraphicsView.ScrollHandDrag)
-        self.graphics_view.wheelEvent = self.zoom
+    def select_time_operation_range(self, start, end):
+        session = self.get_db()
+        operations = session.query(settings.EventOperation).filter(
+            and_(
+                settings.EventOperation.start_time <= end,
+                settings.EventOperation.end_time >= start,
+            )
+        ).order_by(settings.EventOperation.id.asc()).all()
+        session.close()
+        return operations
 
-        self.scene = QGraphicsScene(self)
-        self.graphics_view.setScene(self.scene)
+    def append_record(self, event: dict, image_name: str):
+        # 仅处理点击, 添加记录
+        click_type = {"left": '左键', 'right': '右键', 'middle': '中键'}
+        new_record = settings.Record()
+        new_record.record_time = event.get("run_time")
+        action = event.get("event")
+        new_record.event = f"在({int(action[3])}, {int(action[4])})处按下{click_type.get(action[1])}"
+        new_record.image_name = image_name
+        self.insert(new_record)
+        records = self.get_last_data(settings.Record, 1)
+        if len(records) == 1:
+            return records[0]
+        raise
 
-        self.pixmap_item = self.scene.addPixmap(pixmap)
-        self.fitInView()
-
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.addWidget(self.graphics_view)
-        self.setLayout(self.layout)
-
-    def fitInView(self):
-        rect = QRectF(self.pixmap_item.pixmap().rect())
-        if not rect.isNull():
-            unity = self.graphics_view.transform().mapRect(QRectF(0, 0, 1, 1))
-            self.graphics_view.scale(1 / unity.width(), 1 / unity.height())
-            view_rect = self.graphics_view.viewport().rect()
-            scene_rect = self.graphics_view.transform().mapRect(rect)
-            factor = min(view_rect.width() / scene_rect.width(),
-                         view_rect.height() / scene_rect.height())
-            self.graphics_view.scale(factor, factor)
-            self.graphics_view.centerOn(rect.center())
-
-    def zoom(self, event):
-        if event.angleDelta().y() > 0:
-            self.graphics_view.scale(1.1, 1.1)
+    def add_events(self, events: list):
+        if len(events) != 0:
+            new_record = settings.EventOperation()
+            new_record.start_time = events[0].get('run_time')
+            new_record.end_time = events[-1].get('run_time')
+            new_record.events = json.dumps(events)
+            self.insert(new_record)
         else:
-            self.graphics_view.scale(0.9, 0.9)
+            app_root.ui_log.warning('并无事件需要被记录')
 
 
 class WatchTab(QWidget):
@@ -76,62 +70,275 @@ class WatchTab(QWidget):
         super().__init__(parent)
         self.index = index
         self.name = '操作回溯'
+        self.sql = RecordHandler()
+
+        self.layout = QHBoxLayout()
+        self.control_bar = QVBoxLayout()
+        self.scroll_area_layout = QVBoxLayout()
+
+        self.start_time_edit = CommonTimeEdit()
+        self.end_time_edit = CommonTimeEdit()
+
+        self.is_current = False
+        self.is_record = False
+        self.record_btn = CommonButton('开始录制')
+        self.preview_btn = CommonButton('片段预览')
+        self.reback_btn = CommonButton('片段回溯')
+        self.delete_btn = CommonButton('片段删除')
+        self.delete_btn.setDisabled(True)
 
         self.init_ui()
 
-    # def init_ui(self):
-    #     watch_layout = QVBoxLayout()
-    #     self.setLayout(watch_layout)
-    #     tip_label = QLabel('敬请期待')
-    #     tip_label.setStyleSheet('font-size: 60pt')
-    #     tip_label.setAlignment(Qt.AlignCenter)
-    #     watch_layout.addWidget(tip_label)
     def init_ui(self):
-        self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area_content = QWidget()
-        self.scroll_area_layout = QHBoxLayout()
-        self.scroll_area_layout.setContentsMargins(0, 10, 0, 10)
-        self.scroll_area_content.setLayout(self.scroll_area_layout)
-        self.scroll_area.setWidget(self.scroll_area_content)
-        self.layout.addWidget(self.scroll_area)
-        self.layout.setStretchFactor(self.scroll_area, 7)
-
-        self.load_records()
-        self.scroll_area_layout.setSpacing(10)
-
         self.load_control_bar()
+        self.scroll_records_show_ui()
 
-    def load_records(self):
-        records = get_records()
-        for i, record in enumerate(reversed(records)):
-            step_widget = self.create_step_widget(record)
-            self.scroll_area_layout.addWidget(step_widget)
+        self.load_action()
+
+    def load_control_bar(self):
+        self.layout.addLayout(self.control_bar)
+        self.layout.setStretchFactor(self.control_bar, 3)
+        self.control_bar.setContentsMargins(5, 5, 5, 5)
+
+        title = TitleLabel('片段操作：各项操作仅在该界面有效')
+        self.control_bar.addWidget(title)
+        self.control_bar.setStretchFactor(self.control_bar, 1)
+
+        # self.start_time_edit.setDateTime(QDateTime.currentDateTime())  # 设置当前日期和时间
+        # print(self.start_time_edit.dateTime().toSecsSinceEpoch())
+
+        self.time_info_ui()
+        self.button_group_ui()
+
+        self.control_bar.addStretch()
+
+    def time_info_ui(self):
+        start_layout = QHBoxLayout()
+        start_label = TitleLabel('开始时间')
+        start_layout.addWidget(start_label)
+        start_layout.addWidget(self.start_time_edit)
+        start_layout.setStretchFactor(start_label, 3)
+        start_layout.setStretchFactor(self.start_time_edit, 7)
+
+        end_layout = QHBoxLayout()
+        end_label = TitleLabel('结束时间')
+        end_layout.addWidget(end_label)
+        end_layout.addWidget(self.end_time_edit)
+        end_layout.setStretchFactor(end_label, 3)
+        end_layout.setStretchFactor(self.end_time_edit, 7)
+
+        self.control_bar.addLayout(start_layout)
+        self.control_bar.addLayout(end_layout)
+
+    def button_group_ui(self):
+        button_group = QVBoxLayout()
+        # 写入
+        button_group.addWidget(self.record_btn)
+        self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/start_record.png')))
+
+        # 预览
+        button_group.addWidget(self.preview_btn)
+
+        # 回溯
+        button_group.addWidget(self.reback_btn)
+        # 删除
+        button_group.addWidget(self.delete_btn)
+
+        self.control_bar.addLayout(button_group)
+
+    def load_action(self):
+        self.record_btn.clicked.connect(self.action_record_handler)
+        self.preview_btn.clicked.connect(self.action_preview_clips)
+        self.reback_btn.clicked.connect(self.action_reback_clips)
+        self.delete_btn.clicked.connect(self.action_delete_clips)
+        app_root.mult_tab.currentChanged.connect(self.action_tab_changed)
+        app_root.key_watch.event_signal.connect(self.action_end_record)
+        app_root.key_watch.mouse_signal.connect(self.action_add_step_in_pre)
+
+    def action_tab_changed(self):
+        if self.parent().currentIndex() == self.index:
+            self.is_current = True
+        elif self.is_current:
+            self.is_current = False
+            if self.is_record:
+                self.action_record_handler()
+                app_root.ui_log.warning('切换页面，自动结束录制')
+
+    def action_record_handler(self):
+        self.is_record = not self.is_record
+        if self.is_record:
+            self.action_start_record()
+        else:
+            events = app_root.key_watch.record_events
+            self.action_end_record(events)
+
+    def action_start_record(self):
+        self.record_btn.setText('录制中,按<Esc>快捷结束')
+        self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/recording.png')))
+        app_root.key_watch.clear_events()
+        app_root.key_watch.update_status(11)
+
+    def action_add_step_in_pre(self, event):
+        if self.is_record:
+            image_name = settings.record.img_record(save_path=settings.Files.IMAGE_EVENT_DIR)
+            record = self.sql.append_record(event=event.detail, image_name=image_name)
+            if self.scroll_area_layout.count() == 0:
+                self.insert_record_into_pre_top(record, arrow=False)
+            else:
+                self.insert_record_into_pre_top(record, arrow=True)
+
+    def action_end_record(self, events):
+        if app_root.key_watch.status != 1:
+            app_root.key_watch.update_status(1)
+        self.is_record = False
+        self.sql.add_events(events)
+        self.record_btn.setText('开始录制')
+        self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/start_record.png')))
+
+    def action_preview_clips(self):
+        form_data = self.get_time_clip()
+        records = self.sql.select_time_range(start=form_data["start_time"], end=form_data["end_time"])
+        self.load_records_in_pre(records)
+        app_root.ui_log.info(f'共加载{len(records)}条记录')
+
+    def action_divide_clips_by_time(self):
+        form_data = self.get_time_clip()
+        records = self.sql.select_time_operation_range(start=form_data["start_time"], end=form_data["end_time"])
+        if records:
+            start = 0
+            start_events = json.loads(records[0].events)
+            for e in start_events:
+                if e['run_time'] < form_data["start_time"] - 0.2:
+                    start += 1
+
+            end = len(records[-1])
+            end_events = json.loads(records[-1].events)
+            for item in end_events:
+                if item['run_time'] > form_data["end_time"] + 0.2:
+                    end -= 1
+            pass
+
+    def action_reback_clips(self):
+        form_data = self.get_time_clip()
+        records = self.sql.select_time_operation_range(start=form_data["start_time"], end=form_data["end_time"])
+        operations = [json.loads(r.events) for r in records]
+
+        if operations:
+            start = 0
+            for item in operations[0]:
+                if item['run_time'] < form_data["start_time"] - 0.2:
+                    start += 1
+            end = len(operations[-1])
+            for item in operations[-1]:
+                if item['run_time'] > form_data["end_time"] + 0.2:
+                    end -= 1
+
+            if len(operations) == 1:
+                operations[0] = operations[0][start:end]
+            else:
+                operations[0] = operations[0][start:]
+                operations[-1] = operations[-1][:end]
+
+            app_root.ui_log.info('开始回溯')
+            for op in operations:
+                settings.watch.replay_events(op)
+            app_root.ui_log.success('回溯完毕')
+        else:
+            app_root.ui_log.warning('没有内容可以回溯')
+
+    def action_delete_clips(self):
+        form_data = self.get_time_clip()
+        print(form_data)
+
+    def get_time_clip(self):
+        form_data = {}
+        form_data.update({"start_time": self.start_time_edit.dateTime().toSecsSinceEpoch()})
+        form_data.update({"end_time": self.end_time_edit.dateTime().toSecsSinceEpoch()})
+        return form_data
+
+    def scroll_records_show_ui(self):
+        scroll_area = QScrollArea(self)
+        scroll_area_content = QWidget()
+        scroll_area_content.setObjectName('scroll_area_content')
+        scroll_area_content.setStyleSheet("""
+            #scroll_area_content{
+                background-color: #ececec;
+            }
+        """)
+
+        scroll_area.setWidgetResizable(True)
+        self.scroll_area_layout.setContentsMargins(5, 10, 5, 10)
+        scroll_area_content.setLayout(self.scroll_area_layout)
+        scroll_area.setWidget(scroll_area_content)
+        self.scroll_area_layout.setSpacing(10)
+        self.layout.addWidget(scroll_area)
+        self.layout.setStretchFactor(scroll_area, 4)
+
+        self.action_init_pre()
+
+    def insert_record_into_pre_top(self, record, arrow=True):
+        if arrow:
+            guide_step_arrow = CommonLabel("⬆")
+            guide_step_arrow.setAlignment(Qt.AlignCenter)
+            self.scroll_area_layout.insertWidget(0, guide_step_arrow)
+        step_widget = self.create_step_widget(record)
+        self.scroll_area_layout.insertWidget(0, step_widget)
+
+    def action_clear_pre(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                self.action_clear_pre(item.layout())
+
+    def action_init_pre(self):
+        records = self.sql.get_records()
+        self.load_records_in_pre(records)
+
+    def load_records_in_pre(self, records):
+        self.action_clear_pre(self.scroll_area_layout)
+        if len(records) > 0:
+            start_time = QDateTime.fromSecsSinceEpoch(records[0].record_time - 1)
+            self.start_time_edit.setDateTime(start_time)
+            end_time = QDateTime.fromSecsSinceEpoch(records[-1].record_time + 1)
+            self.end_time_edit.setDateTime(end_time)
+
+            for index, record in enumerate(records):
+                if index != 0:
+                    self.insert_record_into_pre_top(record, arrow=True)
+                else:
+                    self.insert_record_into_pre_top(record, arrow=False)
+        else:
+            self.start_time_edit.setDateTime(QDateTime.currentDateTime())
+            self.end_time_edit.setDateTime(QDateTime.currentDateTime())
+
+        # print(self.start_time_edit.dateTime().toSecsSinceEpoch())
 
     def create_step_widget(self, record):
         step_widget = QWidget()
         # 设置边框样式
         step_widget.setObjectName("StepWidget")
-        step_widget.setStyleSheet('''
+        step_widget.setStyleSheet("""
                     #StepWidget {
                         border: 1px solid #DCDFE6; 
                         border-radius: 4px;
+                        background-color: #ececec;
                     }
-                ''')
+                """)
 
         # 创建步骤内容布局
-        content_layout = QVBoxLayout()
+        content_layout = QHBoxLayout()
         content_layout.setContentsMargins(5, 5, 5, 5)
         step_widget.setLayout(content_layout)
 
-        # 创建步骤时间
+        # 创建步骤顺序
         step_label = QLabel(f"◉ Step:{record.id}")
         step_label.setStyleSheet("color: #409EFF; border: none")
-        step_label.setFixedHeight(30)
         step_label.setAlignment(Qt.AlignCenter)
         content_layout.addWidget(step_label)
         content_layout.setStretchFactor(step_label, 1)
@@ -141,51 +348,49 @@ class WatchTab(QWidget):
         image_label.setFixedHeight(100)
         image_label.setMinimumWidth(100)
         image_label.setAlignment(Qt.AlignCenter)
-        image_path = os.path.join(r'/Users/dgove/Downloads/image', record.image_name)
+        image_path = os.path.join(settings.Files.IMAGE_EVENT_DIR, f'{record.image_name}.png')
         if os.path.exists(image_path):
             pixmap = QPixmap(image_path)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 image_label.setPixmap(pixmap)
                 # 设置鼠标点击事件
                 image_label.mousePressEvent = lambda event: self.show_image_dialog(pixmap)
         else:
-            image_label.setText("No Image")
+            image_label.setText("图片消失了")
         image_label.setStyleSheet("border: 1px solid #DCDFE6; border-radius: 4px;")
         content_layout.addWidget(image_label)
+        content_layout.setStretchFactor(image_label, 1)
+
+        desc_widget = QWidget()
+        desc_widget.setObjectName("DescWidget")
+        desc_widget.setStyleSheet("""
+                    #DescWidget {
+                        border: 1px solid #DCDFE6; 
+                        border-radius: 4px;
+                    }
+                """)
+        desc_layout = QVBoxLayout()
+        desc_widget.setLayout(desc_layout)
+        desc_widget.setFixedHeight(100)
 
         # 创建步骤时间
-        time_label = QLabel(f"{record.record_time}")
+        time_label = QLabel(f"{TimeTool.strftime_for_format(record.record_time)}")
         time_label.setStyleSheet("color: #909399; border: none")
-        content_layout.addWidget(time_label)
-        content_layout.setStretchFactor(time_label, 1)
+        desc_layout.addWidget(time_label)
+        desc_layout.setStretchFactor(time_label, 1)
 
         # 创建步骤标题和描述
-        step_title = QLabel("点击")
+        step_title = CommonLabel(record.event)
         step_title.setStyleSheet("color: #909399; border: none")
-        content_layout.addWidget(step_title)
-        content_layout.setStretchFactor(step_title, 1)
-        content_layout.setSpacing(0)
+        desc_layout.addWidget(step_title)
+        desc_layout.setStretchFactor(step_title, 1)
 
-        # # 创建步骤连接线
-        # line_label = QLabel()
-        # line_label.setFixedHeight(5)
-        # line_label.setStyleSheet("""
-        #     background-color: #DCDFE6;
-        #     width: 2px;
-        # """)
-        # step_widget_layout.addWidget(line_label)
+        content_layout.addWidget(desc_widget)
+        content_layout.setStretchFactor(desc_widget, 8)
 
         return step_widget
 
     def show_image_dialog(self, pixmap):
-        dialog = ImageViewer(pixmap)
-        dialog.exec_()
-
-    def load_control_bar(self):
-        bar = QHBoxLayout()
-        self.layout.addLayout(bar)
-        self.layout.setStretchFactor(bar, 3)
-
-        title = QLabel('控制栏')
-        bar.addWidget(title)
+        app_root.dialog = ImageViewerDialog(pixmap, app_root.root)
+        app_root.dialog.exec_()

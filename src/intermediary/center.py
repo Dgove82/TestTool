@@ -61,6 +61,12 @@ class SQLserver:
         finally:
             session.close()
 
+    def get_last_data(self, model, count=1):
+        session = self.get_db()
+        latest_users = session.query(model).order_by(model.id.desc()).limit(count).all()
+        session.close()
+        return latest_users
+
     def record_exist(self, model):
         session = self.get_db()
         flag = session.query(model).first()

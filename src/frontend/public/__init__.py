@@ -15,6 +15,8 @@ class AppRoot(Singleton):
         self.conf_act = None
         # 更新日志
         self.update_info_act = None
+        # tab控件
+        self.mult_tab = None
         # 会话框
         self.__dialog = None
         # 日志输出框 线程

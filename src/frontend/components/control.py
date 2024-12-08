@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QTextCursor, QColor, QTextCharFormat, QPixmap, QIcon, QFont, QSyntaxHighlighter
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRegularExpression
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRegularExpression, QDateTime
 import settings
 import os
 
@@ -64,6 +64,16 @@ class ClickLabel(QLabel):
 
     def leaveEvent(self, event):
         self.unsetCursor()
+
+
+class CommonLabel(QLabel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setStyleSheet("""
+            QLabel{
+                color: #606266;
+            }
+        """)
 
 
 class CommonScrollArea(QScrollArea):
@@ -253,7 +263,6 @@ class CommonLineEdit(QLineEdit):
                 padding: 6px 10px; /* 内边距 */
                 background-color: #fff; /* 背景颜色 */
                 color: #606266; /* 文本颜色 */
-                font-size: 14px; /* 字体大小 */
             }
             QLineEdit:hover {
                 border-color: #c0c4cc; /* 鼠标悬停时的边框颜色 */
@@ -263,6 +272,29 @@ class CommonLineEdit(QLineEdit):
             }
         """)
 
+
+class CommonTimeEdit(QDateTimeEdit):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_style()
+
+    def init_style(self):
+        self.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+        self.setStyleSheet("""
+            QDateTimeEdit {
+                    border: 1px solid #C0C0C0;
+                    padding: 6px 10px;
+                    background-color: #FFFFFF;
+                    border-radius: 4px;
+                    color: #606266;
+                }
+                QDateTimeEdit::up-button {
+                    width: 25px;
+                }
+                QDateTimeEdit::down-button {
+                    width: 25px;
+                }
+        """)
 
 class TitleLabel(QLabel):
     def __init__(self, *args, **kwargs):
@@ -535,3 +567,41 @@ class CodeEditBox(QTextEdit):
             }
         """)
         self.highlighter = DarculaHighlighter(self.document())
+
+
+class CommonTab(QTabWidget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.load_style()
+
+    def load_style(self):
+        self.setStyleSheet("""
+            QTabWidget::pane {
+                border-top: 1px solid #409eff;
+                background-color: #ececec;
+            }
+            QTabWidget::tab-bar {
+                alignment: left;
+            }
+            QTabBar {
+                background-color: #F5F7FA;
+            }
+
+            QTabBar::tab {
+                border: 1px solid #E4E7ED;
+                background-color: #FFFFFF;
+                min-width: 40px;
+                padding: 5px 10px;
+                color: #909399;
+            }
+
+            QTabBar::tab:selected, QTabBar::tab:hover {
+                background-color: #FFFFFF;
+                border-color: #409EFF;
+            }
+
+            QTabBar::tab:selected {
+                border-bottom: 3px solid #409EFF;
+                color: #409eff;
+            }
+                           """)

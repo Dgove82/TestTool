@@ -12,9 +12,16 @@ class KeyRecord:
         self.key = key
 
 
+class MouseRecord:
+    def __init__(self, event):
+        self.detail = event
+
+
 class KeyWatchThread(QThread):
     press_signal = pyqtSignal(KeyRecord)
     release_signal = pyqtSignal(KeyRecord)
+
+    mouse_signal = pyqtSignal(MouseRecord)
 
     start_run_signal = pyqtSignal(str)
     event_signal = pyqtSignal(list)
@@ -35,26 +42,43 @@ class KeyWatchThread(QThread):
 
         self.sig = 0
 
+    @property
+    def record_events(self):
+        return self._events
+
+    @property
+    def status(self):
+        return self._status
+
     def update_status(self, s):
         self._status = s
 
     def append_event(self, event):
-        self._events.append({"run_time": time.time(), "event": event})
+        if isinstance(event, list):
+            self._events.append({"run_time": time.time(), "event": event})
+        elif isinstance(event, dict):
+            self._events.append(event)
 
     def clear_events(self):
         self._events = []
 
     def on_click(self, x, y, button, pressed):
+        event = {"run_time": time.time(), "event": ['click', button.name, pressed, x, y]}
         if self._status == 11:
-            self.append_event(['click', button.name, pressed, x, y])
+            self.append_event(event)
+        if pressed and self._status > 1:
+            # 避免异常中断
+            self.mouse_signal.emit(MouseRecord(event=event))
 
     def on_move(self, x, y):
         if self._status == 11:
-            self.append_event(['move', x, y])
+            event = {"run_time": time.time(), "event": ['move', x, y]}
+            self.append_event(event)
 
     def on_scroll(self, x, y, dx, dy):
         if self._status == 11:
-            self.append_event(['scroll', x, y, dx, dy])
+            event = {"run_time": time.time(), "event": ['scroll', x, y, dx, dy]}
+            self.append_event(event)
 
     def on_press(self, key):
         if self._status == 11:
@@ -68,7 +92,6 @@ class KeyWatchThread(QThread):
         self.press_signal.emit(KeyRecord(key))
 
     def on_release(self, key):
-        # app_root.ui_log.info('ok')
         # 录制中
         if self._status == 11:
             self.append_event(['release', str(key)])

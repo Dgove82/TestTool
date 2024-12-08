@@ -5,8 +5,8 @@ from PyQt5.QtCore import Qt
 
 class BaseDialog(QDialog):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.init_ui()
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
