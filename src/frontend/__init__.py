@@ -29,7 +29,7 @@ class App(QMainWindow):
         # 设置主窗口的标题和初始大小
         self.setWindowTitle('DS-T')
         self.setWindowIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets', 'icon.png')))
-        self.setGeometry(100, 100, 1000, 1000)
+        self.setGeometry(100, 50, 1000, 900)
 
         # 创建一个中心窗口
         central_widget = QWidget()

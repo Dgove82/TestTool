@@ -60,7 +60,8 @@ class FuncAction(Singleton):
     def flash_or_load_preview(self, func):
         params = "\n".join(
             [f"{index + 1}.{item}" for index, item in enumerate(json.loads(func.depict_params).values())])
-        info = f'{func.depict_func}\n【参数】\n{params if params else "无"}'
+        info = f'{func.depict_func}\n\n【参数】\n{params if params else "无"}\n\n【解释】\n{func.depict_return if func.depict_return else "无"}'
+
         self.control.pre_read_view.setText(info)
 
     def action_step_add(self, pos=None):
@@ -273,7 +274,6 @@ class FuncAction(Singleton):
 
     def action_define_step_insert(self, events):
         if self.app.dialog is not None:
-            self.app.dialog.running = False
             data = self.app.dialog.make_data()
             pos = self.check_edit_for_int(data.get('self_process_index')) - 1
             name = data.get('name') if data.get('name') is not None else '自定义方法'

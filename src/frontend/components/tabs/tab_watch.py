@@ -2,8 +2,10 @@ import json
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QScrollArea
 )
-from PyQt5.QtCore import Qt, QDateTime
+from PyQt5.QtCore import Qt, QDateTime, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap, QIcon
+from pynput import keyboard
+
 import settings
 import os
 from src.frontend.public import app_root
@@ -81,6 +83,7 @@ class WatchTab(QWidget):
 
         self.is_current = False
         self.is_record = False
+        self.trace_task = None
         self.record_btn = CommonButton('开始录制')
         self.preview_btn = CommonButton('片段预览')
         self.reback_btn = CommonButton('片段回溯')
@@ -157,6 +160,7 @@ class WatchTab(QWidget):
         app_root.mult_tab.currentChanged.connect(self.action_tab_changed)
         app_root.key_watch.event_signal.connect(self.action_end_record)
         app_root.key_watch.mouse_signal.connect(self.action_add_step_in_pre)
+        app_root.key_watch.press_signal.connect(self.action_press_key)
 
     def action_tab_changed(self):
         if self.parent().currentIndex() == self.index:
@@ -176,6 +180,7 @@ class WatchTab(QWidget):
             self.action_end_record(events)
 
     def action_start_record(self):
+        app_root.ui_log.info('开始录制')
         self.record_btn.setText('录制中,按<Esc>快捷结束')
         self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/recording.png')))
         app_root.key_watch.clear_events()
@@ -191,12 +196,14 @@ class WatchTab(QWidget):
                 self.insert_record_into_pre_top(record, arrow=True)
 
     def action_end_record(self, events):
-        if app_root.key_watch.status != 1:
-            app_root.key_watch.update_status(1)
-        self.is_record = False
-        self.sql.add_events(events)
-        self.record_btn.setText('开始录制')
-        self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/start_record.png')))
+        if self.is_record and self.is_current:
+            if app_root.key_watch.status != 1:
+                app_root.key_watch.update_status(1)
+            self.is_record = False
+            self.sql.add_events(events)
+            self.record_btn.setText('开始录制')
+            self.record_btn.setIcon(QIcon(os.path.join(settings.DEPS_PROGRAM, 'assets/start_record.png')))
+            app_root.ui_log.info('录制结束')
 
     def action_preview_clips(self):
         form_data = self.get_time_clip()
@@ -225,29 +232,27 @@ class WatchTab(QWidget):
         form_data = self.get_time_clip()
         records = self.sql.select_time_operation_range(start=form_data["start_time"], end=form_data["end_time"])
         operations = [json.loads(r.events) for r in records]
-
-        if operations:
-            start = 0
-            for item in operations[0]:
-                if item['run_time'] < form_data["start_time"] - 0.2:
-                    start += 1
-            end = len(operations[-1])
-            for item in operations[-1]:
-                if item['run_time'] > form_data["end_time"] + 0.2:
-                    end -= 1
-
-            if len(operations) == 1:
-                operations[0] = operations[0][start:end]
-            else:
-                operations[0] = operations[0][start:]
-                operations[-1] = operations[-1][:end]
-
-            app_root.ui_log.info('开始回溯')
-            for op in operations:
-                settings.watch.replay_events(op)
-            app_root.ui_log.success('回溯完毕')
+        if self.trace_task is None:
+            self.reback_btn.setDisabled(True)
+            self.reback_btn.setText('回溯中')
+            self.trace_task = TraceThread(form_data, operations)
+            self.trace_task.finish_signal.connect(self.action_trace_finish)
+            self.trace_task.start()
         else:
-            app_root.ui_log.warning('没有内容可以回溯')
+            app_root.ui_log.warning('正在回溯中')
+
+    def action_trace_finish(self):
+        self.trace_task = None
+        self.reback_btn.setText('片段回溯')
+        self.reback_btn.setDisabled(False)
+
+    def action_press_key(self, key):
+        if self.is_current and key.key == keyboard.Key.esc:
+            if self.trace_task is not None:
+                self.trace_task.terminate()
+                self.trace_task.wait()
+                app_root.ui_log.warning('回溯被中断')
+                self.action_trace_finish()
 
     def action_delete_clips(self):
         form_data = self.get_time_clip()
@@ -394,3 +399,40 @@ class WatchTab(QWidget):
     def show_image_dialog(self, pixmap):
         app_root.dialog = ImageViewerDialog(pixmap, app_root.root)
         app_root.dialog.exec_()
+
+
+class TraceThread(QThread):
+    finish_signal = pyqtSignal()
+
+    def __init__(self, border, operations, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.border = border
+        self.operations = operations
+
+    def run(self):
+        self.trace_task()
+        self.finish_signal.emit()
+
+    def trace_task(self):
+        if self.operations:
+            start = 0
+            for item in self.operations[0]:
+                if item['run_time'] < self.border["start_time"] - 0.2:
+                    start += 1
+            end = len(self.operations[-1])
+            for item in self.operations[-1]:
+                if item['run_time'] > self.border["end_time"] + 0.2:
+                    end -= 1
+
+            if len(self.operations) == 1:
+                self.operations[0] = self.operations[0][start:end]
+            else:
+                self.operations[0] = self.operations[0][start:]
+                self.operations[-1] = self.operations[-1][:end]
+
+            app_root.ui_log.info('开始回溯')
+            for op in self.operations:
+                settings.watch.replay_events(op)
+            app_root.ui_log.success('回溯结束')
+        else:
+            app_root.ui_log.warning('没有内容可以回溯')

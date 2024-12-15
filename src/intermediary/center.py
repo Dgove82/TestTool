@@ -308,7 +308,7 @@ class ControlCenter:
         ControlCenter.steps = []
 
     def exec_exist_step(self, f):
-        element_lib = importlib.import_module(f'library.operation')
+        element_lib = importlib.import_module(f'library.operation.element')
         ele = getattr(element_lib, 'Element')()
         params = json.loads(f.get("params", "{}"))
         temp_params = {}
@@ -548,7 +548,7 @@ class Test{module_name}:
 
             self.mark += 1
 
-        if len(ControlCenter.steps) == 0:
+        if len(self.steps) == 0:
             content += '        # 为什么要生成空用例？\n'
             content += '        pass\n'
         self.content = header + content

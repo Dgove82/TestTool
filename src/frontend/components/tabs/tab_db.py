@@ -126,7 +126,7 @@ class DBTab(QWidget):
         self.load_container_config_ui(record)
         if self.is_load is False:
             self.label.setText('修改配置中')
-            self.label.setFixedHeight(30)
+            self.label.setFixedHeight(50)
             self.container_layout.addStretch()
 
     def load_container_config_ui(self, record: dict):

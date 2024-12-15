@@ -169,11 +169,24 @@ class FuncUpdate:
         shutil.unpack_archive(os.path.join(settings.Files.LIBRARY_ORIGIN, file), current_library)
         settings.log.success('方法库拉取完毕')
 
+    def copy_library(self):
+        current_library = settings.Files.LIBRARY_DIR
+        if not os.path.exists(current_library):
+            os.makedirs(current_library)
+
+        settings.log.info('清理当前方法库')
+        shutil.rmtree(current_library)
+        settings.log.info('拷贝调试方法库中')
+        shutil.copytree(settings.Files.LIBRARY_ORIGIN, current_library)
+        settings.log.success('方法库拉取完毕')
+
     def update_handler(self):
         try:
             self.get_net_versions()
             now = float(self.versions.get('now', 0.0))
-            if now > self.get_current_version():
+            if now == "debug":
+                self.copy_library()
+            elif now > float(self.get_current_version()):
                 self.update_library()
             else:
                 settings.log.info('当前已是最新版本')

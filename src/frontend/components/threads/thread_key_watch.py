@@ -84,8 +84,8 @@ class KeyWatchThread(QThread):
         if self._status == 11:
             if key == keyboard.Key.esc:
                 self.update_status(1)
-                app_root.ui_log.info('录制结束')
                 self.event_signal.emit(self._events)
+                self.clear_events()
             else:
                 self.append_event(['press', str(key)])
 

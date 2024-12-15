@@ -27,7 +27,7 @@ class FuncParamDialog(BaseDialog):
 
     def init_ui(self):
         self.setWindowTitle('配置')
-        self.setGeometry(100, 100, 300, 300)
+        self.setGeometry(100, 100, 500, 300)
         self.center_on_parent()
 
         self.setLayout(self.out_layout)
@@ -38,8 +38,8 @@ class FuncParamDialog(BaseDialog):
         body_layout = QVBoxLayout()
         line_layout = QHBoxLayout()
 
-        title = CommonInfoBox(f'{self.func.depict_func}')
-        # title.setWordWrap(True)
+        title = CommonInfoBox()
+        title.setText(f'{self.func.depict_func}\n\n【解释】\n{self.func.depict_return if self.func.depict_return else "无"}')
         body_layout.addWidget(title)
 
         # 插入至第几步

@@ -23,7 +23,7 @@ class EditParamDialog(BaseDialog):
 
     def init_ui(self):
         self.setWindowTitle('编辑')
-        self.setGeometry(100, 100, 300, 300)
+        self.setGeometry(100, 100, 500, 300)
         self.center_on_parent()
         self.setLayout(self.out_layout)
 
@@ -37,7 +37,8 @@ class EditParamDialog(BaseDialog):
 
             f_type = func.get("type", None)
             if f_type == "exist":
-                title = CommonInfoBox(f'{func.get("depict_func", None)}')
+                title = CommonInfoBox()
+                title.setText(f'{func.get("depict_func")}\n\n【解释】\n{func.get("depict_return") if func.get("depict_return") else "无"}')
                 self.body_layout.addWidget(title)
                 params = json.loads(func.get('params', None))
                 depict_params = json.loads(func.get('depict_params', None))

@@ -1,3 +1,5 @@
+from pynput import keyboard
+
 from src.frontend.components.dialogs.dialog_base import BaseDialog
 from src.frontend.components.control import CommonButton, TitleLabel, CommonLineEdit
 from PyQt5.QtWidgets import *
@@ -67,6 +69,11 @@ class ExecDialog(BaseDialog):
     def load_action(self):
         self.confirm.clicked.connect(self.start_task)
         self.cancel.clicked.connect(self.close_task)
+        app_root.key_watch.press_signal.connect(self.check_cancel_stop_task)
+
+    def check_cancel_stop_task(self, key):
+        if key.key == keyboard.Key.esc:
+            self.close_task()
 
     def start_task(self):
         try:
@@ -97,13 +104,13 @@ class ExecDialog(BaseDialog):
         return res
 
     def close_task(self):
-        app_root.dialog = None
         if self.run_task.isRunning():
             self.run_task.terminate()
             self.run_task.wait()
-            app_root.ui_log.success('流程已被中断')
+            app_root.ui_log.warning('流程已被中断')
             app_root.root.normal_window()
-        self.reject()
+        self.close_dialog()
+        app_root.key_watch.press_signal.disconnect(self.check_cancel_stop_task)
 
     def closeEvent(self, event):
         self.close_task()
